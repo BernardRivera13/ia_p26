@@ -97,6 +97,27 @@ $$
 
 Esto te recuerda que “no puedes darle códigos cortísimos a todos”: hay un presupuesto de longitudes.
 
+### Mini-ejemplo visual: del árbol al código (sin Huffman todavía)
+
+Imagina este árbol (izquierda=`0`, derecha=`1`):
+
+```text
+          (raíz)
+         /      \
+       0/        \1
+       /          \
+     (*)          (*)
+    /   \        /   \
+  00     01    10     11
+  a      b     c      d
+```
+
+Entonces los códigos son literalmente los caminos:
+
+- $c(a)=00$, $c(b)=01$, $c(c)=10$, $c(d)=11$
+
+Y se ve el punto del “prefijo”: ninguno de esos strings es prefijo de otro, porque todas las hojas están al mismo nivel.
+
 ---
 
 ## ¿Cómo se construye el mejor código? Huffman (paso a paso)
@@ -139,6 +160,39 @@ Detalles prácticos:
 
 ---
 
+## ¿Qué es exactamente el “heap” aquí? (sin magia)
+
+En Huffman necesitas repetir muchas veces: “dame los dos pesos más chicos”.  
+La estructura estándar para eso es una **cola de prioridad** implementada con un **min-heap**.
+
+### La idea de cola de prioridad
+
+Piensa en un contenedor de elementos con clave `peso` que soporta:
+
+- `insertar(elemento)`
+- `extrae_min()` (sacar el elemento con menor peso)
+
+### La idea de heap (min-heap)
+
+Un min-heap es un árbol binario “casi completo” (se llena por niveles) con la regla:
+
+> El peso en cada nodo es $\le$ que el peso de sus hijos.  
+> Por eso el mínimo siempre está en la raíz.
+
+En implementación real suele guardarse en un **arreglo** (sin punteros) y mantener la regla con dos operaciones:
+
+- **sift-up** (al insertar): sube el elemento mientras sea más pequeño que su padre.
+- **sift-down** (al extraer mínimo): bajas el elemento que pusiste en la raíz mientras sea más grande que alguno de sus hijos.
+
+Cada sift recorre como mucho la altura del árbol, que es $O(\log k)$.
+
+### Nota pedagógica
+
+En el ejemplo, para entender, voy a escribir el heap como una **lista ordenada por peso**.
+Eso NO es el layout interno del heap (que no está ordenado globalmente), pero sí refleja correctamente qué elementos podrían salir por `extrae_min()`.
+
+---
+
 ## Ejemplo completo de Huffman (con números y cálculo de $L$)
 
 Supón una fuente con 6 símbolos:
@@ -156,6 +210,12 @@ Supón una fuente con 6 símbolos:
 
 Cada símbolo es una hoja con su peso.
 
+**Heap inicial (visto como lista ordenada por peso):**
+
+$$
+[(f,0.04),(e,0.06),(d,0.15),(c,0.20),(b,0.25),(a,0.30)]
+$$
+
 ### Paso 1: juntar los dos más raros
 
 Los dos más chicos son $f(0.04)$ y $e(0.06)$:
@@ -163,6 +223,12 @@ Los dos más chicos son $f(0.04)$ y $e(0.06)$:
 - Merge: $(f,e)\rightarrow n_1$ con peso $0.10$
 
 Ahora los “nodos” son: $a(0.30)$, $b(0.25)$, $c(0.20)$, $d(0.15)$, $n_1(0.10)$.
+
+**Heap después del merge:**
+
+$$
+[(n_1,0.10),(d,0.15),(c,0.20),(b,0.25),(a,0.30)]
+$$
 
 ### Paso 2: repetir
 
@@ -172,6 +238,12 @@ Los dos más chicos ahora son $n_1(0.10)$ y $d(0.15)$:
 
 Ahora tienes: $a(0.30)$, $b(0.25)$, $c(0.20)$, $n_2(0.25)$.
 
+**Heap después del merge:**
+
+$$
+[(c,0.20),(b,0.25),(n_2,0.25),(a,0.30)]
+$$
+
 ### Paso 3: repetir
 
 Los dos más chicos: $c(0.20)$ y uno de los $0.25$ (por ejemplo $b(0.25)$):
@@ -179,6 +251,12 @@ Los dos más chicos: $c(0.20)$ y uno de los $0.25$ (por ejemplo $b(0.25)$):
 - Merge: $(c,b)\rightarrow n_3$ con peso $0.45$
 
 Quedan: $a(0.30)$, $n_2(0.25)$, $n_3(0.45)$.
+
+**Heap después del merge:**
+
+$$
+[(n_2,0.25),(a,0.30),(n_3,0.45)]
+$$
 
 ### Paso 4: repetir
 
@@ -188,14 +266,50 @@ Los dos más chicos: $n_2(0.25)$ y $a(0.30)$:
 
 Quedan: $n_3(0.45)$, $n_4(0.55)$.
 
+**Heap después del merge:**
+
+$$
+[(n_3,0.45),(n_4,0.55)]
+$$
+
 ### Paso 5: merge final (raíz)
 
 - Merge: $(n_3,n_4)\rightarrow \text{root}$ con peso $1.00$
 
-### Asignar bits y leer longitudes
+### Construir el árbol (lo que realmente produjo el algoritmo)
 
-Asigna (por ejemplo) `0` a la rama izquierda y `1` a la derecha.  
-Una asignación posible produce longitudes:
+Si expandes “quién se juntó con quién”, el árbol conceptual queda así:
+
+```text
+                 root(1.00)
+                 /        \
+             n3(0.45)    n4(0.55)
+             /   \        /     \
+          c(.20) b(.25) n2(.25) a(.30)
+                         /   \
+                      n1(.10) d(.15)
+                      /   \
+                   f(.04) e(.06)
+```
+
+Esto es literalmente Huffman: cada merge crea un padre cuyo peso es la suma de sus hijos.
+
+### Asignar bits y leer códigos (no solo longitudes)
+
+Asigna (por ejemplo) `0` a la rama izquierda y `1` a la derecha.
+Con esa convención, un conjunto posible de códigos es:
+
+- $c(c)=00$
+- $c(b)=01$
+- $c(a)=11$
+- $c(d)=101$
+- $c(f)=1000$
+- $c(e)=1001$
+
+Dos cosas a checar:
+
+1) **Prefijo**: ninguno de esos códigos es prefijo de otro.  
+2) **Longitudes**: las longitudes quedan:
 
 - $a$: longitud 2
 - $b$: longitud 2
@@ -204,7 +318,7 @@ Una asignación posible produce longitudes:
 - $e$: longitud 4
 - $f$: longitud 4
 
-Nota: puede que tus bits exactos cambien si rompes empates distinto, pero estas longitudes (y el costo promedio) se mantienen.
+Nota: si rompes empates distinto o cambias “izquierda/derecha”, cambian los bits exactos, pero el costo promedio óptimo (y estas longitudes) no empeoran.
 
 ### Calcular el costo promedio $L$
 

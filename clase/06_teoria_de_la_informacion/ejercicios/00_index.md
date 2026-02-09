@@ -59,8 +59,13 @@ Se generan imágenes como:
 - `images/entropia_bernoulli.png` (entropía vs concentración)
 - `images/cross_entropy_kl_identidad.png` (cross-entropy = entropía + KL)
 - `images/wordle_top_info_gain.png` (top guesses por IG)
+- `images/zipf_password_prior.png` (prior Zipf para passwords por rank)
 
 Estas se referencian en las notas del módulo.
+
+![Prior Zipf para passwords]({{ '/06_teoria_de_la_informacion/images/zipf_password_prior.png' | url }})
+
+*Sin feedback, el problema se parece mucho a “ordenar intentos” por prior. Un prior Zipf (cola pesada en el rank) es una aproximación razonable: pocos passwords concentran mucha probabilidad.*
 
 ---
 

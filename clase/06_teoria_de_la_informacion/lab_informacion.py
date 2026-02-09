@@ -82,6 +82,196 @@ def plot_entropy_two_outcomes():
     _save(fig, "entropia_bernoulli.png")
 
 
+def plot_log2_questions():
+    """
+    Visual: log2(N) as \"# de preguntas sí/no\" para N opciones equiprobables.
+    """
+    Ns = np.unique(np.round(np.logspace(0, 6, 250)).astype(int))
+    ys = np.log2(Ns)
+
+    fig, ax = plt.subplots()
+    ax.plot(Ns, ys, color=COLORS["blue"], linewidth=2)
+    ax.set_xscale("log")
+    ax.set_title("Bits como preguntas: log2(N) vs N (escala log en N)")
+    ax.set_xlabel("N (número de opciones equiprobables)")
+    ax.set_ylabel("log2(N)  (preguntas sí/no en el mejor caso)")
+
+    for N in [1, 2, 4, 8, 1024, 4096, 1_000_000]:
+        ax.scatter([N], [math.log(N, 2)], color=COLORS["red"], s=30, zorder=3)
+        ax.annotate(f"N={N}\n{math.log(N,2):.1f} bits", xy=(N, math.log(N, 2)),
+                    xytext=(8, 8), textcoords="offset points", fontsize=9)
+
+    _save(fig, "log2_n_preguntas.png")
+
+
+def plot_surprisal_vs_p_bits():
+    """
+    Visual: I(p) = -log2(p) vs p.
+    """
+    ps = np.linspace(1e-6, 1 - 1e-6, 1200)
+    I = -np.log2(ps)
+
+    fig, ax = plt.subplots()
+    ax.plot(ps, I, color=COLORS["red"], linewidth=2)
+    ax.set_title("Sorpresa (surprisal): I(p) = -log2(p)")
+    ax.set_xlabel("p")
+    ax.set_ylabel("I(p) (bits)")
+    ax.set_ylim(0, 20)
+
+    for p in [0.5, 0.1, 0.01]:
+        ax.scatter([p], [-math.log(p, 2)], color=COLORS["blue"], s=30, zorder=3)
+        ax.annotate(f"p={p}\nI={-math.log(p,2):.2f} bits", xy=(p, -math.log(p, 2)),
+                    xytext=(10, 10), textcoords="offset points", fontsize=9,
+                    arrowprops=dict(arrowstyle="->", lw=0.8))
+
+    _save(fig, "surprisal_vs_p_bits.png")
+
+
+def plot_surprisal_bases_comparison():
+    """
+    Visual: same surprisal curve in different bases (bits vs nats vs hartleys).
+    Shows: changing base is just rescaling.
+    """
+    ps = np.linspace(1e-6, 1 - 1e-6, 1200)
+    I_bits = -np.log2(ps)
+    I_nats = -np.log(ps)  # natural log
+    I_hart = -np.log10(ps)
+
+    fig, ax = plt.subplots()
+    ax.plot(ps, I_bits, label="bits (base 2)", color=COLORS["blue"], linewidth=2)
+    ax.plot(ps, I_nats, label="nats (base e)", color=COLORS["red"], linewidth=2, alpha=0.85)
+    ax.plot(ps, I_hart, label="hartleys (base 10)", color=COLORS["green"], linewidth=2, alpha=0.85)
+    ax.set_title("La base del log solo cambia la unidad (reescala)")
+    ax.set_xlabel("p")
+    ax.set_ylabel("I(p) en distintas unidades")
+    ax.set_ylim(0, 20)
+    ax.legend()
+    _save(fig, "surprisal_bases_comparison.png")
+
+
+def plot_unit_conversions():
+    """
+    Visual: unit conversions expressed in bits.
+    """
+    vals = {
+        "1 nat": math.log(math.e, 2),
+        "1 trit": math.log(3, 2),
+        "1 hartley": math.log(10, 2),
+    }
+
+    fig, ax = plt.subplots(figsize=(10, 5))
+    labels = list(vals.keys())
+    bits = list(vals.values())
+    ax.bar(labels, bits, color=COLORS["gray"], alpha=0.9)
+    ax.set_title("Conversión de unidades a bits")
+    ax.set_ylabel("bits")
+    for i, b in enumerate(bits):
+        ax.text(i, b + 0.05, f"{b:.3f}", ha="center", va="bottom", fontsize=10)
+    _save(fig, "conversion_unidades.png")
+
+
+def plot_ideal_length_vs_prob():
+    """
+    Visual: ideal code length -log2 p vs integer lengths (ceil) for a toy prior.
+    """
+    # Toy prior (non-uniform)
+    p = np.array([0.34, 0.22, 0.16, 0.10, 0.08, 0.05, 0.03, 0.02])
+    p = p / p.sum()
+    symbols = [f"s{i+1}" for i in range(len(p))]
+    ideal = -np.log2(p)
+    shannon = np.ceil(ideal)  # a common constructive upper bound
+
+    fig, ax = plt.subplots(figsize=(12, 6))
+    x = np.arange(len(p))
+    ax.bar(x - 0.18, ideal, width=0.36, label="-log2 p(x) (ideal)", color=COLORS["blue"])
+    ax.bar(x + 0.18, shannon, width=0.36, label="ceil(-log2 p) (longitud entera)", color=COLORS["red"], alpha=0.85)
+    ax.set_xticks(x, symbols)
+    ax.set_title("Longitudes de código: ideal vs enteras (toy prior)")
+    ax.set_xlabel("símbolo")
+    ax.set_ylabel("bits")
+    ax.legend()
+    _save(fig, "ideal_length_vs_prob.png")
+
+
+def plot_zipf_password_prior():
+    """
+    Visual: Zipf-like prior over rank: p(r) ∝ 1/r^alpha (log-log).
+    """
+    r = np.arange(1, 100_001)
+    fig, ax = plt.subplots()
+    for alpha, color in [(0.9, COLORS["blue"]), (1.07, COLORS["red"]), (1.3, COLORS["green"])]:
+        w = 1.0 / (r ** alpha)
+        p = w / w.sum()
+        ax.loglog(r, p, label=f"alpha={alpha}", linewidth=2, color=color)
+    ax.set_title("Prior Zipf (passwords): p(rank) ∝ 1/r^alpha")
+    ax.set_xlabel("rank (1=más común)")
+    ax.set_ylabel("probabilidad (escala log-log)")
+    ax.legend()
+    _save(fig, "zipf_password_prior.png")
+
+
+def plot_landauer_kTln2():
+    """
+    Visual: Landauer limit kT ln 2 as a function of temperature.
+    (Light version: 1 equation + intuition.)
+    """
+    k = 1.380649e-23  # J/K
+    T = np.linspace(100, 400, 400)
+    E = k * T * math.log(2)
+
+    fig, ax = plt.subplots()
+    ax.plot(T, E, color=COLORS["green"], linewidth=2)
+    ax.set_title("Límite de Landauer: E_min ≈ kT ln 2 (energía por borrar 1 bit)")
+    ax.set_xlabel("Temperatura T (K)")
+    ax.set_ylabel("E_min (joules)")
+
+    T0 = 300
+    E0 = k * T0 * math.log(2)
+    ax.scatter([T0], [E0], color=COLORS["red"], s=35, zorder=3)
+    ax.annotate(f"T=300K\nE≈{E0:.2e} J", xy=(T0, E0),
+                xytext=(10, 10), textcoords="offset points",
+                arrowprops=dict(arrowstyle="->", lw=0.8), fontsize=9)
+
+    _save(fig, "landauer_kTln2.png")
+
+
+def plot_wordle_pattern_mass(max_words: int = 200):
+    """
+    Visual: for a chosen guess, show distribution over feedback patterns.
+    Helps explain why some guesses \"parten\" mejor.
+    """
+    lex = load_generated_spanish_5letter(ROOT) or load_mini_spanish_5letter(ROOT)
+    words = sorted(lex.words, key=lambda w: lex.weights.get(w, 0.0), reverse=True)[:max_words]
+    weights = {w: max(lex.weights.get(w, 1.0), 1e-12) for w in words}
+
+    # Pick a guess from the top information gain list (reusing existing logic)
+    base_h = _entropy_of_word_posterior(weights, words)
+    guesses = words[: min(80, len(words))]
+    igs = []
+    for g in guesses:
+        exp_h = expected_entropy_after_guess(words, weights, g)
+        igs.append((g, base_h - exp_h))
+    igs.sort(key=lambda t: t[1], reverse=True)
+    guess = igs[0][0]
+
+    total = sum(weights[w] for w in words)
+    pattern_mass: Dict[Tuple[int, int, int, int, int], float] = {}
+    for secret in words:
+        pat = feedback_pattern(secret, guess)
+        pattern_mass[pat] = pattern_mass.get(pat, 0.0) + weights[secret] / total
+
+    items = sorted(pattern_mass.items(), key=lambda kv: kv[1], reverse=True)[:25]
+    labels = ["".join(str(x) for x in pat) for pat, _ in items][::-1]
+    vals = [mass for _, mass in items][::-1]
+
+    fig, ax = plt.subplots(figsize=(12, 7))
+    ax.barh(labels, vals, color=COLORS["gray"], alpha=0.9)
+    ax.set_title(f"Wordle: distribución de patrones para guess='{guess}' (top 25)")
+    ax.set_xlabel("P(pattern | guess, prior)")
+    ax.set_ylabel("patrón (0=gris,1=amarillo,2=verde)")
+    _save(fig, "wordle_pattern_mass.png")
+
+
 def plot_entropy_dirichlet_like():
     """
     Show entropy as distribution becomes more concentrated.
@@ -216,10 +406,18 @@ def plot_wordle_expected_information_gain(max_words: int = 200):
 
 def main() -> int:
     print("Generando imágenes (Teoría de la Información)...")
+    plot_log2_questions()
     plot_entropy_two_outcomes()
     plot_entropy_dirichlet_like()
+    plot_surprisal_vs_p_bits()
+    plot_surprisal_bases_comparison()
+    plot_unit_conversions()
     plot_cross_entropy_vs_model_mismatch()
+    plot_ideal_length_vs_prob()
+    plot_zipf_password_prior()
+    plot_landauer_kTln2()
     plot_wordle_expected_information_gain()
+    plot_wordle_pattern_mass()
     print("Listo.")
     return 0
 

@@ -4,11 +4,11 @@ title: "Información mutua: qué tanto me dice Y sobre X"
 
 # Información mutua: qué tanto me dice Y sobre X
 
-Hasta ahora medimos incertidumbre sobre una variable \(X\).
+Hasta ahora medimos incertidumbre sobre una variable $X$.
 
 Ahora queremos medir algo relacional:
 
-> ¿Cuánto me dice \(Y\) sobre \(X\)?
+> ¿Cuánto me dice $Y$ sobre $X$?
 
 Ese “cuánto” es **información mutua**.
 
@@ -18,13 +18,13 @@ Ese “cuánto” es **información mutua**.
 
 La entropía condicional es:
 
-\[
+$$
 H(X\mid Y, I) = \mathbb{E}_{y\sim p}\left[H(X\mid Y=y, I)\right]
-\]
+$$
 
 Lectura:
 
-> Es la incertidumbre promedio que queda sobre \(X\) después de observar \(Y\).
+> Es la incertidumbre promedio que queda sobre $X$ después de observar $Y$.
 
 ---
 
@@ -32,19 +32,19 @@ Lectura:
 
 La información mutua se define como:
 
-\[
+$$
 I(X;Y\mid I) = H(X\mid I) - H(X\mid Y, I)
-\]
+$$
 
 Lectura UX:
 
-> Es cuántos bits (en promedio) reduce \(Y\) tu incertidumbre sobre \(X\).
+> Es cuántos bits (en promedio) reduce $Y$ tu incertidumbre sobre $X$.
 
 ### Propiedades importantes (sin prueba)
 
-- \(I(X;Y)\ge 0\).
-- \(I(X;Y)=0\) si \(X\) y \(Y\) son independientes (saber \(Y\) no cambia nada).
-- Es simétrica: \(I(X;Y)=I(Y;X)\).
+- $I(X;Y)\ge 0$.
+- $I(X;Y)=0$ si $X$ y $Y$ son independientes (saber $Y$ no cambia nada).
+- Es simétrica: $I(X;Y)=I(Y;X)$.
 
 ---
 
@@ -52,25 +52,25 @@ Lectura UX:
 
 En Wordle:
 
-- \(X\) = palabra secreta,
-- \(G\) = tu guess (lo eliges),
-- \(F\) = feedback que te regresa el juego.
+- $X$ = palabra secreta,
+- $G$ = tu guess (lo eliges),
+- $F$ = feedback que te regresa el juego.
 
-Si fijas un guess \(G=g\), entonces \(F\) se vuelve una función de \(X\) (con reglas del juego).
+Si fijas un guess $G=g$, entonces $F$ se vuelve una función de $X$ (con reglas del juego).
 
 La cantidad relevante para “elegir un buen guess” es:
 
-\[
+$$
 I(X;F\mid G=g, I)
 =
 H(X\mid I) - H(X\mid F, G=g, I)
-\]
+$$
 
 Esto es la misma idea que escribimos como ganancia esperada de información:
 
-\[
+$$
 \text{IG}(g) = H(X\mid I) - \mathbb{E}_{F}[H(X\mid F,I)]
-\]
+$$
 
 Solo que ahora lo vemos como un caso particular de información mutua.
 
@@ -80,10 +80,10 @@ Solo que ahora lo vemos como un caso particular de información mutua.
 
 ### 1) Selección de features (intuición)
 
-Si una feature \(Y\) tiene alta \(I(X;Y)\), entonces:
+Si una feature $Y$ tiene alta $I(X;Y)$, entonces:
 
-- observar \(Y\) reduce mucho la incertidumbre sobre \(X\),
-- por lo tanto \(Y\) “contiene información” relevante sobre la etiqueta \(X\).
+- observar $Y$ reduce mucho la incertidumbre sobre $X$,
+- por lo tanto $Y$ “contiene información” relevante sobre la etiqueta $X$.
 
 Esto inspira criterios como:
 
@@ -92,20 +92,20 @@ Esto inspira criterios como:
 
 ### 2) LLMs: entropía promedio y perplejidad
 
-Si un modelo de lenguaje asigna \(q(\text{token}_t\mid \text{contexto})\),
+Si un modelo de lenguaje asigna $q(\text{token}_t\mid \text{contexto})$,
 la pérdida típica es:
 
-\[
+$$
 -\log q(\text{token}_t\mid \text{contexto})
-\]
+$$
 
-Promediada en el tiempo y en datos reales (aprox \(p\)), esto es cross-entropy.
+Promediada en el tiempo y en datos reales (aprox $p$), esto es cross-entropy.
 
-La **perplejidad** es (en base \(e\)) algo como:
+La **perplejidad** es (en base $e$) algo como:
 
-\[
+$$
 \text{ppl} = \exp\left(\mathbb{E}[-\log q]\right)
-\]
+$$
 
 Lectura:
 
@@ -117,22 +117,22 @@ Lectura:
 
 Analogía:
 
-> Si tu objetivo es identificar \(X\), quieres observar variables \(Y\) que en promedio eliminen muchas posibilidades.
+> Si tu objetivo es identificar $X$, quieres observar variables $Y$ que en promedio eliminen muchas posibilidades.
 
 - **Qué captura bien**: MI como reducción esperada de incertidumbre.
-- **Qué es incompleto**: no incluye costo de medir \(Y\), ni restricciones computacionales, ni sesgo del modelo.
+- **Qué es incompleto**: no incluye costo de medir $Y$, ni restricciones computacionales, ni sesgo del modelo.
 
 ---
 
 :::exercise{title="MI como reducción de incertidumbre (idea cualitativa)" difficulty="2"}
 
-Considera \(X\) = “palabra secreta” y dos posibles pistas:
+Considera $X$ = “palabra secreta” y dos posibles pistas:
 
-- \(Y_1\): “la primera letra de la palabra”
-- \(Y_2\): “si la palabra contiene la letra e”
+- $Y_1$: “la primera letra de la palabra”
+- $Y_2$: “si la palabra contiene la letra e”
 
-1. Sin calcular números: ¿cuál crees que suele dar más información mutua con \(X\)? ¿depende del idioma/dataset?
-2. ¿Cómo cambiaría tu respuesta si el prior \(p(X)\) está muy concentrado (pocas palabras muy probables)?
+1. Sin calcular números: ¿cuál crees que suele dar más información mutua con $X$? ¿depende del idioma/dataset?
+2. ¿Cómo cambiaría tu respuesta si el prior $p(X)$ está muy concentrado (pocas palabras muy probables)?
 
 :::
 
@@ -142,10 +142,10 @@ Considera \(X\) = “palabra secreta” y dos posibles pistas:
 
 Ya tenemos un toolkit completo para el capstone:
 
-- \(I(x)=-\log p(x)\): sorpresa de una hipótesis específica.
-- \(H(X)\): incertidumbre promedio / bits inevitables.
-- \(H(p,q)\) y \(D_{KL}\): costo por modelar mal.
-- \(I(X;Y)\): utilidad esperada de observar una pista.
+- $I(x)=-\log p(x)$: sorpresa de una hipótesis específica.
+- $H(X)$: incertidumbre promedio / bits inevitables.
+- $H(p,q)$ y $D_{KL}$: costo por modelar mal.
+- $I(X;Y)$: utilidad esperada de observar una pista.
 
 Lo siguiente es convertir esto en un sistema tangible:
 

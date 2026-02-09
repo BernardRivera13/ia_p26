@@ -192,7 +192,7 @@ Quedan: $n_3(0.45)$, $n_4(0.55)$.
 
 - Merge: $(n_3,n_4)\rightarrow \text{root}$ con peso $1.00$
 
-### Asignar bits y leer códigos
+### Asignar bits y leer longitudes
 
 Asigna (por ejemplo) `0` a la rama izquierda y `1` a la derecha.  
 Una asignación posible produce longitudes:
@@ -270,18 +270,26 @@ Analogía:
 
 ---
 
-:::exercise{title="Diseño de códigos y longitud promedio" difficulty="3"}
+::::exercise{title="Huffman paso a paso (y comparación con entropía)" difficulty="3"}
 
-Tienes símbolos $\{a,b,c,d\}$ con:
+El examen cubre las primeras tres clases del curso:
 
-- $p(a)=0.5$, $p(b)=0.25$, $p(c)=0.125$, $p(d)=0.125$
+- **Clase 1**: Introducción e Historia de la IA
+- **Clase 2**: Agents y Environments
+- **Clase 3**: Lógica
 
-1. Propón un código prefijo (por ejemplo, asignando códigos cortos a los más probables).
-2. Calcula $L$.
-3. Calcula $H(X)$.
-4. Compara $L$ contra $H$. ¿Qué tan “cerca” estás del límite?
+El examen incluirá todo lo que hemos visto sobre cómo evalúo, los temas de historia de la IA, agentes y ambientes, y lógica proposicional.
+Tienes símbolos $\{a,b,c,d,e,f\}$ con:
 
-:::
+- $p(a)=0.30$, $p(b)=0.25$, $p(c)=0.20$, $p(d)=0.15$, $p(e)=0.06$, $p(f)=0.04$
+
+1. Ejecuta Huffman “a mano”: en cada paso junta los dos pesos más chicos y anota el nuevo peso.
+2. Dibuja el árbol (aunque sea en ASCII) o al menos deduce las longitudes $\ell(x)$.
+3. Calcula $L=\sum_x p(x)\ell(x)$.
+4. Calcula $H(X)=-\sum_x p(x)\log_2 p(x)$.
+5. Reporta la redundancia $L-H$ (en bits/símbolo) e interpreta qué significa.
+
+::::
 
 ---
 

@@ -701,9 +701,10 @@ def plot_genetic_algorithm():
 
 
 def plot_method_comparison():
-    """Bar chart comparing methods on Rastrigin 2D."""
+    """2-panel: f(x) bars (log scale) + nfev bars, comparing methods on Rastrigin 2D."""
     rng = np.random.default_rng(42)
-    x0 = np.array([3.0, 3.0])
+    # Starting point near (but not at) integers — traps gradient methods
+    x0 = np.array([2.9, 3.9])
     bounds_opt = [(-5.12, 5.12)] * 2
 
     results = {}
@@ -724,14 +725,6 @@ def plot_method_comparison():
     res_bfgs = minimize(_rastrigin, x0, method="L-BFGS-B",
                         bounds=bounds_opt)
     results["L-BFGS-B"] = {"f": res_bfgs.fun, "nfev": res_bfgs.nfev}
-
-    # dual_annealing
-    res_da = dual_annealing(_rastrigin, bounds_opt, seed=42)
-    results["dual_annealing"] = {"f": res_da.fun, "nfev": res_da.nfev}
-
-    # differential_evolution
-    res_de = differential_evolution(_rastrigin, bounds_opt, seed=42)
-    results["diff_evolution"] = {"f": res_de.fun, "nfev": res_de.nfev}
 
     # Custom SA
     x_sa = x0.copy()
@@ -779,24 +772,53 @@ def plot_method_comparison():
         pop, fit = new_pop, new_fit
     results["GA (custom)"] = {"f": fit.min(), "nfev": nfev_ga}
 
-    # Plot
+    # dual_annealing
+    res_da = dual_annealing(_rastrigin, bounds_opt, seed=42)
+    results["dual_annealing"] = {"f": res_da.fun, "nfev": res_da.nfev}
+
+    # differential_evolution
+    res_de = differential_evolution(_rastrigin, bounds_opt, seed=42)
+    results["diff_evolution"] = {"f": res_de.fun, "nfev": res_de.nfev}
+
+    # Plot: 2 panels
     methods = list(results.keys())
     f_vals = [results[m]["f"] for m in methods]
     nfevs = [results[m]["nfev"] for m in methods]
     found_global = [v < 1.0 for v in f_vals]
     bar_colors = [COLORS["green"] if fg else COLORS["red"] for fg in found_global]
 
-    fig, ax = plt.subplots(figsize=(12, 6))
-    bars = ax.bar(methods, f_vals, color=bar_colors, edgecolor="black", linewidth=1.2)
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(16, 6))
 
-    for bar, nf, fv in zip(bars, nfevs, f_vals):
-        ax.text(bar.get_x() + bar.get_width() / 2, bar.get_height() + 0.3,
-                f"nfev={nf}\nf={fv:.2f}", ha="center", va="bottom", fontsize=9)
+    # Panel 1: f(x) — log scale so both stuck and global are visible
+    # Add small epsilon to zero values for log scale
+    f_plot = [max(v, 0.001) for v in f_vals]
+    bars1 = ax1.bar(methods, f_plot, color=bar_colors, edgecolor="black", linewidth=1.2)
+    ax1.set_yscale("log")
+    ax1.axhline(y=1.0, color=COLORS["gray"], linestyle="--", linewidth=0.8,
+                label="Umbral: f < 1 = global")
+    for bar, fv, fg in zip(bars1, f_vals, found_global):
+        label = f"f={fv:.2f}" if fv > 0.01 else "f ≈ 0"
+        y_pos = max(fv, 0.001) * 1.5
+        ax1.text(bar.get_x() + bar.get_width() / 2, y_pos, label,
+                 ha="center", va="bottom", fontsize=9, fontweight="bold",
+                 color=COLORS["green"] if fg else COLORS["red"])
+    ax1.set_ylabel("Mejor $f(x)$ encontrado (log)")
+    ax1.set_title("¿Encuentra el mínimo global?")
+    ax1.legend(fontsize=9)
+    ax1.tick_params(axis="x", rotation=15)
 
-    ax.axhline(y=0, color=COLORS["gray"], linestyle="--", linewidth=0.8, label="Óptimo global (f=0)")
-    ax.set_ylabel("Mejor $f(x)$ encontrado")
-    ax.set_title("Comparación de métodos en Rastrigin 2D (inicio: (3, 3))")
-    ax.legend(fontsize=9)
+    # Panel 2: number of function evaluations
+    bars2 = ax2.bar(methods, nfevs, color=[COLORS["blue"]] * len(methods),
+                    edgecolor="black", linewidth=1.2, alpha=0.8)
+    for bar, nf in zip(bars2, nfevs):
+        ax2.text(bar.get_x() + bar.get_width() / 2, bar.get_height() + 50,
+                 str(nf), ha="center", va="bottom", fontsize=9, fontweight="bold")
+    ax2.set_ylabel("Evaluaciones de $f$")
+    ax2.set_title("Costo computacional")
+    ax2.tick_params(axis="x", rotation=15)
+
+    fig.suptitle("Comparación de métodos en Rastrigin 2D (inicio: (2.9, 3.9))",
+                 fontsize=14, y=1.02)
     fig.tight_layout()
     _save(fig, "method_comparison.png")
 

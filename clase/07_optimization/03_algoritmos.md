@@ -50,6 +50,21 @@ En la práctica de ML, es común usar un **número fijo de épocas** (por ejempl
 - Para garantía de óptimo global: $f$ es **convexa**
 - Para tasa de convergencia lineal: $f$ es **fuertemente convexa** ($\mu > 0$)
 
+### Cuándo funciona / qué garantiza (y cuándo NO)
+
+- **Funciona bien si**:
+  - \(f\) es suave (diferenciable) y el problema es **convexo** o “casi convexo”.
+  - el problema no está extremadamente **mal condicionado** (curvaturas no demasiado disparejas), o puedes re-escalar variables.
+  - puedes escoger un \(\alpha\) estable (o usar line search / schedule).
+- **Qué te garantiza**:
+  - En general: te lleva a un punto donde el gradiente es pequeño (\(\|\nabla f\|\approx 0\)).
+  - **Óptimo global** solo si \(f\) es **convexa** (y \(\alpha\) es apropiado).
+  - Convergencia particularmente buena si \(f\) es **fuertemente convexa**.
+- **Cuándo NO**:
+  - Si \(f\) es **no convexa**, no hay garantía de llegar al óptimo global (puede caer en un mínimo local o cerca de un punto silla).
+  - Si \(f\) no es diferenciable, GD “puro” no aplica (necesitas subgradientes o reformulación).
+  - Si el problema está muy mal condicionado, GD puede ser desesperadamente lento (ahí suele ganar L-BFGS / Newton / precondicionamiento).
+
 ### Ventajas y desventajas
 
 | Ventajas | Desventajas |
@@ -125,6 +140,21 @@ Valores por defecto: $\beta_1 = 0.9$, $\beta_2 = 0.999$, $\varepsilon = 10^{-8}$
 - La varianza del gradiente es **acotada**: $\text{Var}[\nabla f_B] \leq \sigma^2$
 - Para convergencia teórica de SGD: learning rate decreciente ($\sum \alpha_k = \infty$, $\sum \alpha_k^2 < \infty$)
 
+### Cuándo funciona / qué garantiza (y cuándo NO)
+
+- **Funciona bien si**:
+  - \(N\) es grande y el gradiente completo es caro.
+  - tu objetivo es un promedio sobre datos (la estructura \(\frac1N\sum f_i\)).
+  - aceptas ruido a cambio de actualizaciones baratas.
+- **Qué te garantiza** (en teoría):
+  - En problemas **convexos**, con learning rate decreciente, SGD converge (bajo supuestos estándar).
+- **Qué NO te garantiza**:
+  - En problemas **no convexos** (deep learning), no hay certificado de óptimo global: se usa porque funciona bien en práctica.
+  - Adam no tiene las mismas garantías teóricas que SGD con decay en todos los casos convexos.
+- **Cuándo NO**:
+  - Si \(N\) es pequeño y \(f\) es suave/determinista, métodos batch (GD) o cuasi-Newton (L-BFGS) suelen ser mejores.
+  - Si \(f\) es muy sensible al ruido, un batch muy chico puede hacer que “no asiente” cerca del óptimo sin un buen schedule.
+
 ### Ventajas y desventajas
 
 | Ventajas | Desventajas |
@@ -178,6 +208,19 @@ Por eso `scipy.optimize.minimize` con `method='L-BFGS-B'` destruye a nuestro GD 
 - Hessiano Lipschitz para convergencia **cuadrática**
 - $x_0$ debe estar **cerca del óptimo** (convergencia local, no global)
 
+### Cuándo funciona / qué garantiza (y cuándo NO)
+
+- **Funciona bien si**:
+  - el problema es suave y de tamaño chico/mediano (o puedes aproximar curvatura).
+  - ya estás **cerca** del óptimo (Newton es espectacular en la fase final).
+- **Qué te garantiza**:
+  - Newton: convergencia **local** muy rápida si el Hessiano es PD cerca del óptimo.
+  - L-BFGS-B: típicamente converge mucho mejor que GD en problemas mal condicionados, pero sigue sin “certificado global” en no convexos.
+- **Cuándo NO / trampas típicas**:
+  - Si \(f\) es **lineal**, el Hessiano es cero y Newton no aplica (para objetivos lineales, lo correcto es LP: simplex/HiGHS).
+  - Si el Hessiano no es PD (o estás lejos del óptimo), Newton puede divergir sin damping/line search.
+  - En settings estocásticos (SGD), la curvatura estimada es ruidosa y cuasi-Newton suele ser mala idea.
+
 ### Ventajas y desventajas (Newton)
 
 | Ventajas | Desventajas |
@@ -227,6 +270,14 @@ $$\mathcal{L}(x, \lambda) = f(x) + \lambda \, h(x)$$
 
 El óptimo se encuentra resolviendo $\nabla_x \mathcal{L} = 0$ y $\nabla_\lambda \mathcal{L} = 0$ (que equivale a $h(x) = 0$).
 
+### Qué resuelve (y qué NO resuelve)
+
+- **Resuelve**: restricciones de **igualdad** \(h_i(x)=0\) (una o varias), con funciones diferenciables.
+- **NO resuelve directamente**:
+  - **desigualdades** \(g(x)\le 0\) → necesitas **KKT** (multiplicadores \(\mu\ge 0\) + holgura complementaria).
+  - restricciones o objetivos **no diferenciables** (sin subgradientes/reformulación).
+- **Ojo**: “resolver las ecuaciones de Lagrange” produce **candidatos**; todavía falta verificar que sea mínimo y que el problema esté acotado.
+
 ### Ejemplo trabajado
 
 $\min \quad x^2 + y^2 \quad$ sujeto a $\quad x + y = 1$
@@ -259,6 +310,21 @@ Solución: $(x^{∗}, y^{∗}) = (1/2, 1/2)$, con $f^{∗} = 1/2$.
 - $f$ y $h_i$ son **diferenciables**
 - **LICQ** (Linear Independence Constraint Qualification): los gradientes de las restricciones activas son linealmente independientes
 - Suficiencia de segundo orden para confirmar que es un mínimo (no máximo ni silla)
+
+### Cuándo funciona / qué garantiza (y cuándo NO)
+
+- **Qué te da Lagrange, exactamente**:
+  - Las ecuaciones \(\nabla_x \mathcal{L}=0\) y \(h(x)=0\) son **condiciones necesarias** para optimalidad **bajo** calificaciones de restricciones (como LICQ).
+  - **No son suficientes** en general: pueden describir un **máximo** o un **punto silla**. En problemas no convexos debes comprobar segundo orden o comparar valores.
+- **Cuándo “siempre encuentra el óptimo”**:
+  - Si estás minimizando una \(f\) **convexa** con restricciones de igualdad **afines** (\(h(x)=Ax-b\)), entonces cualquier punto que satisface KKT/Lagrange (y factibilidad) es **óptimo global**.
+- **Cuándo NO (casos comunes)**:
+  - **No convexo**: puede devolverte un punto crítico que no es óptimo global.
+  - **LICQ falla** (restricciones redundantes/dependientes): los multiplicadores pueden no existir o no ser únicos; las condiciones se vuelven más delicadas.
+  - **No acotado**: puede no existir mínimo (no hay “mejor” solución).
+- **¿Qué pasa si el objetivo es lineal?**
+  - Con solo igualdades \(Ax=b\), un objetivo lineal \(c^Tx\) suele ser **no acotado** (puedes irte al \(\pm\infty\) a lo largo de direcciones que preservan \(Ax=b\)).
+  - Para que exista óptimo normalmente necesitas **cotas** o **desigualdades** → eso ya es el mundo de **LP** (simplex/HiGHS) y **dualidad**.
 
 ### Ventajas y desventajas
 
@@ -400,6 +466,17 @@ Si la restricción está **activa** ($x_1 + x_2 = 10$), de (1): $4x_1 + x_2 = 6x
 - En el caso general: **LICQ** u otra calificación de restricciones
 - $\mu_j \geq 0$ para todas las desigualdades
 
+### Cuándo funciona / qué garantiza (y cuándo NO)
+
+- **Qué son KKT**:
+  - Son condiciones que caracterizan candidatos óptimos con igualdades + desigualdades.
+  - Como en Lagrange, suelen ser **necesarias** bajo calificaciones de restricciones, pero no siempre suficientes.
+- **Cuándo sí te dan un “certificado”**:
+  - Si el problema es **convexo** (objetivo convexa, restricciones convexas) y se cumple **Slater**, entonces KKT es suficiente y describe el **óptimo global**.
+- **Cuándo NO**:
+  - En **no convexos**, cumplir KKT no implica óptimo global (puede ser local o incluso un punto indeseable).
+  - Si no hay factibilidad o fallan las calificaciones de restricciones, KKT puede no aplicar limpiamente.
+
 ### Dónde se usa
 
 - **Métodos de puntos interiores** (solvers modernos de LP/QP)
@@ -423,6 +500,18 @@ El **método simplex** (Dantzig, 1947) camina de vértice en vértice, siempre m
 
 - Objetivo y restricciones son **lineales**
 - La región factible es **no vacía y acotada** (o al menos el óptimo existe)
+
+### Cuándo funciona / qué garantiza (y cuándo NO)
+
+- **Funciona bien si**:
+  - el problema es realmente un **LP** (todo lineal, con desigualdades y cotas).
+  - quieres solución **exacta** (óptimo global) y diagnóstico de infeasible/unbounded.
+- **Qué te garantiza**:
+  - Si el LP es factible y acotado, simplex/HiGHS encuentra el **óptimo global**.
+  - Si no lo es, el solver típicamente **certifica** infeasible o unbounded.
+- **Cuándo NO**:
+  - Si hay no linealidades (usa otros métodos o reformula).
+  - Si hay variables enteras (eso ya es IP/MIP: branch-and-bound / `milp`).
 
 ### Ventajas y desventajas
 
@@ -452,6 +541,18 @@ El **método simplex** (Dantzig, 1947) camina de vértice en vértice, siempre m
 
 A veces no puedes (o no quieres) calcular gradientes: la función es ruidosa, discontinua, o de caja negra. Ahí entran las **metaheurísticas** — algoritmos que solo necesitan evaluar $f(x)$, no su derivada.
 
+### Cuándo funcionan / qué (no) garantizan
+
+- **Funciona bien si**:
+  - tu función es **caja negra** (no hay gradiente) o es discontinua/ruidosa.
+  - tienes un dominio **acotado** y puedes permitir muchas evaluaciones de \(f(x)\).
+- **Qué NO garantizan**:
+  - no dan certificados de optimalidad (no te dicen “esto es el óptimo global”).
+  - no hay garantía práctica de encontrar el global en tiempo razonable.
+- **Cuándo NO**:
+  - si tienes gradiente y el problema es suave, casi siempre conviene GD/L-BFGS/solvers convexos.
+  - si evaluar \(f\) es muy caro, se vuelven prohibitivas.
+
 ---
 
 ## Simulated Annealing (recocido simulado)
@@ -480,6 +581,12 @@ El nombre viene de la metalurgia: al calentar un metal y enfriarlo lentamente, l
 - Solo necesitas evaluar $f(x)$ — **caja negra** (no gradiente)
 - La vecindad debe ser **ergódica**: desde cualquier punto, eventualmente puedes llegar a cualquier otro
 - Convergencia teórica al global **solo** con enfriamiento logarítmico ($T_k \propto 1/\log k$), que es imprácticamente lento
+
+### Cuándo usarlo / qué esperar
+
+- **Úsalo si**: no hay gradiente, hay muchos mínimos locales, y buscas una solución “buena” sin estructura analítica.
+- **No esperes**: un certificado de óptimo global (en práctica), ni eficiencia si el problema es suave con gradiente disponible.
+- **Se rompe típicamente por**: enfriamiento demasiado rápido (se queda en local) o demasiado lento (tarda demasiado).
 
 ### Ventajas y desventajas
 
@@ -532,6 +639,12 @@ Imagina una **población de soluciones** que evoluciona. Las mejores soluciones 
 - Necesitas una representación adecuada del individuo ("cromosoma") para el problema
 - Los operadores de crossover y mutación deben ser **compatibles** con la representación
 - **Elitismo** (conservar al mejor) garantiza que el fitness nunca empeora entre generaciones
+
+### Cuándo usarlo / qué esperar
+
+- **Úsalo si**: el espacio de búsqueda es grande, multimodal, o combinatorio/discreto, y quieres exploración en “población”.
+- **No esperes**: convergencia rápida en problemas suaves con gradiente (GD/L-BFGS ganan), ni certificados de optimalidad.
+- **Se rompe típicamente por**: mala representación, poca diversidad (convergencia prematura) o demasiados hiperparámetros mal ajustados.
 
 ### Ventajas y desventajas
 
@@ -592,20 +705,35 @@ Imagina una **población de soluciones** que evoluciona. Las mejores soluciones 
 
 ## Taxonomía de algoritmos
 
+### Tabla rápida: ¿qué método elegir?
+
+Usa esta tabla como **cheat sheet**. La clave es identificar 3 cosas del problema: (1) ¿tienes gradiente?, (2) ¿hay restricciones/enteros?, (3) ¿es convexo o no?
+
+| Si tu problema es… | Método recomendado | ¿Qué garantiza? | En Python |
+|---|---|---|---|
+| **Suave, sin restricciones, convexo** | GD o **L-BFGS-B** | Óptimo global (convexo) | `scipy.optimize.minimize(..., method="L-BFGS-B")` o tu GD |
+| **Suave, sin restricciones, no convexo** | SGD/Adam (si hay datos) o L-BFGS-B | Punto crítico / buen mínimo local (sin certificado global) | ML: PyTorch/TF; también `minimize` |
+| **Suave, con igualdades** \(h(x)=0\) | Lagrange (análisis) / solver con restricciones | Óptimo global si convexo + igualdades afines; si no, solo candidato | `minimize(..., constraints={"type":"eq",...})` |
+| **Suave, con desigualdades** \(g(x)\le 0\) | KKT (teoría) / métodos de puntos interiores | Óptimo global si convexo + Slater; si no, no hay garantía global | `minimize(..., constraints=[{"type":"ineq",...}])` |
+| **Todo lineal (LP)** | Simplex / HiGHS | Óptimo global o certificado infeasible/unbounded | `scipy.optimize.linprog(..., method="highs")` |
+| **Lineal + variables enteras (IP/MIP)** | Branch-and-bound / MIP solver | Óptimo entero (puede ser lento) | `scipy.optimize.milp(...)` (o OR-Tools/PuLP) |
+| **Caja negra (sin gradiente), dominio acotado** | `dual_annealing` / `differential_evolution` | Buena solución (sin certificado) | `scipy.optimize.dual_annealing`, `differential_evolution` |
+| **Combinatorio/discreto sin solver** | GA / SA | Heurístico (sin certificado) | Implementación propia (o librerías evolutivas) |
+
 ```mermaid
 graph TD
-    A["¿Tienes gradiente?"] -->|Sí| B["¿El problema es convexo?"]
-    A -->|No| K["¿Variables enteras?"]
-    K -->|Sí| L["Branch & Bound / MIP<br/>(milp, OR-Tools)"]
-    K -->|No| M["¿Una sola solución<br/>o población?"]
-    M -->|Una| N["Simulated Annealing<br/>(dual_annealing)"]
-    M -->|Población| O["Algoritmos Genéticos<br/>(differential_evolution)"]
-    B -->|Sí| D["¿Tiene restricciones?"]
-    B -->|No| E["GD, Adam, SGD<br/>(puede atascarse)"]
-    D -->|No| F["GD, Newton, BFGS"]
-    D -->|Igualdad| G["Lagrange"]
-    D -->|Desigualdad| H["KKT / Puntos interiores"]
-    D -->|Lineales| I["Simplex / HiGHS"]
+    A["1) ¿Tienes gradiente?"] -->|Sí| B["2) ¿Es convexo? (aprox)"]
+    A -->|No| K["¿Es discreto/entero?"]
+    K -->|Sí| L["MIP / Branch & Bound<br/>(milp, OR-Tools)"]
+    K -->|No| M["¿Caja negra acotada?"]
+    M -->|Sí| O["dual_annealing / differential_evolution"]
+    M -->|No| N["Heurísticas ad-hoc<br/>(SA/GA)"]
+    B -->|Sí| D["3) ¿Restricciones?"]
+    B -->|No| E["No convexo con gradiente<br/>SGD/Adam o L-BFGS-B"]
+    D -->|No| F["Sin restricciones<br/>L-BFGS-B / Newton / GD"]
+    D -->|Lineales| I["LP exacto<br/>HiGHS (linprog)"]
+    D -->|Enteras| L
+    D -->|No lineales| H["KKT / puntos interiores<br/>(solvers)"]
 ```
 
 ---

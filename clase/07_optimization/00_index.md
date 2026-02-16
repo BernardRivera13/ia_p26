@@ -37,6 +37,7 @@ El módulo alterna entre **lectura** (notas) y **práctica** (notebooks). Sigue 
 | Notas | [7.4 scipy reference](04_ejemplos_python.md) | Cheat sheet de scipy.optimize (8 patrones) + autodiff |
 | Notebook | [NB1: Formulación y paisaje](notebooks/01_formulacion_y_paisaje.ipynb) | Interactivo: formula y visualiza |
 | Notebook | [NB2: Algoritmos y código](notebooks/02_algoritmos_y_codigo.ipynb) | Interactivo: GD, SGD, scipy, LP, autodiff |
+| Tarea | [NB3: Tarea optimización](notebooks/03_tarea_optimizacion.ipynb) | 5 problemas (LP, QP, IP, black-box, MIP) — 20 pts, entrega 23 feb |
 | Lab | [lab_optimization.py](lab_optimization.py) | Genera todas las visualizaciones |
 
 ## Cómo correr el lab (para imágenes)

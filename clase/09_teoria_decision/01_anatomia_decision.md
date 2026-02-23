@@ -38,9 +38,9 @@ Todo problema de decisión tiene 5 componentes:
 | **Creencias** | $P(S)$ | Probabilidad sobre estados | $P(\text{Lluvia}) = 0.4$ |
 | **Preferencias** | $U: O \to \mathbb{R}$ | Cuánto valoramos cada resultado | $U(\text{seco}) = 8$ |
 
-Nota la analogía con optimización (mod 07):
+Nota la analogía con optimización (módulo 07):
 
-| Optimización (mod 07) | Decisión (mod 09) |
+| Optimización (módulo 07) | Decisión (módulo 09) |
 |------------------------|-------------------|
 | Variables de decisión $x$ | Acciones $A$ |
 | Función objetivo $f(x)$ | Utilidad esperada $E[U(a)]$ |
@@ -123,6 +123,23 @@ Donde el *regret* (arrepentimiento) es:
 $$R(a, s) = \max_{a'} U(a', s) - U(a, s)$$
 
 Es decir: la diferencia entre lo que obtuve y lo que hubiera obtenido con la mejor acción *ex post*.
+
+### ¿Cuándo coinciden y cuándo no?
+
+Los tres criterios pueden dar la **misma** acción o acciones **distintas**. Depende de la estructura de la matriz de pagos:
+
+- **Si una acción domina a todas las demás** (es mejor o igual en *cada* estado), los tres criterios coinciden — no hay conflicto.
+- **Si los pagos son simétricos** (la misma "distancia" entre acciones en cada estado), maximin y minimax regret tienden a coincidir porque el peor caso absoluto y el peor arrepentimiento apuntan al mismo lugar.
+- **Divergen cuando hay asimetría riesgo/recompensa.** Si una acción tiene un pago muy alto en un estado y muy bajo en otro (como "invertir agresivamente"), maximin la penaliza por su peor caso, pero minimax regret puede favorecerla si *no* elegirla genera un arrepentimiento enorme en el estado bueno.
+
+**Intuición rápida:**
+- **Maximin** solo mira el piso: *"¿cuál es mi peor escenario?"*. Es ciego a qué tan bueno puede ser el mejor caso.
+- **Minimax regret** mira la diferencia con lo óptimo *ex post*: *"¿cuánto me voy a arrepentir?"*. Sí toma en cuenta las oportunidades perdidas.
+- **Maximax** solo mira el techo: *"¿cuál es mi mejor escenario?"*. Es ciego al riesgo.
+
+Por eso maximin tiende a elegir acciones conservadoras (pagos estables) y minimax regret puede elegir acciones más arriesgadas cuando el costo de oportunidad de no actuar es grande. Maximax siempre elige la opción más agresiva.
+
+En la sección 9.3 veremos un ejemplo numérico donde MEU y maximin eligen acciones opuestas.
 
 ---
 

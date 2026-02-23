@@ -26,11 +26,11 @@ Cada etapa corresponde a un módulo del curso:
 
 | Etapa | ¿Qué hace? | Módulo |
 |-------|-----------|--------|
-| **Observar** | Recolecta datos del entorno | Probabilidad (mod 05) |
-| **Predecir** | Estima $P(S \mid X)$ o $E[Y \mid X]$ | Predicción (mod 08) |
-| **Evaluar** | Calcula $E[U(a, S)]$ para cada acción | Decisión (mod 09) |
-| **Decidir** | Encuentra $a^{∗} = \arg\max_a E[U(a)]$ | Optimización (mod 07) |
-| **Actuar** | Ejecuta la acción en el mundo | Agentes (mod 02) |
+| **Observar** | Recolecta datos del entorno | Probabilidad (módulo 05) |
+| **Predecir** | Estima $P(S \mid X)$ o $E[Y \mid X]$ | Predicción (módulo 08) |
+| **Evaluar** | Calcula $E[U(a, S)]$ para cada acción | Decisión (módulo 09) |
+| **Decidir** | Encuentra $a^{∗} = \arg\max_a E[U(a)]$ | Optimización (módulo 07) |
+| **Actuar** | Ejecuta la acción en el mundo | Agentes (módulo 02) |
 
 La **teoría de la decisión** es el pegamento que une predicción con acción. Sin ella, la predicción es contemplación; sin predicción, la decisión es un salto al vacío.
 
@@ -42,7 +42,7 @@ No todos los problemas de decisión son iguales. Podemos clasificarlos en dos di
 
 | | **Estados conocidos** | **Estados inciertos** |
 |---|---|---|
-| **Una decisión** | Optimización (mod 07) | Teoría de decisión (mod 09) |
+| **Una decisión** | Optimización (módulo 07) | Teoría de decisión (módulo 09) |
 | **Decisiones secuenciales** | Programación dinámica | MDPs / RL |
 | **Múltiples agentes** | Teoría de juegos (determinista) | Juegos estocásticos |
 

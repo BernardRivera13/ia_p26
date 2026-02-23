@@ -470,111 +470,155 @@ def plot_decision_tree():
 
 
 def plot_voi_medical():
-    """Left: EU bars with/without test + VoI gap. Right: VoI vs test accuracy."""
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 6))
+    """Three panels: toy umbrella VoI, medical bar chart, VoI vs accuracy."""
+    fig, axes = plt.subplots(1, 3, figsize=(18, 6))
 
-    # Scenario: patient may have disease (prior p=0.1)
-    # Action: Treat (cost=50, benefit if sick=200) or Don't treat
-    # Without info:
-    #   EU(Treat)   = 0.1*(200-50) + 0.9*(-50) = 15 - 45 = -30
-    #   EU(NoTreat) = 0.1*(-200) + 0.9*(0) = -20
-    #   Best: EU(NoTreat) = -20
-    # With perfect info:
-    #   If sick (p=0.1): Treat -> 150; NoTreat -> -200 => Treat (150)
-    #   If healthy (p=0.9): Treat -> -50; NoTreat -> 0 => NoTreat (0)
-    #   EU(perfect) = 0.1*150 + 0.9*0 = 15
-    #   VPI = 15 - (-20) = 35
+    # =====================================================================
+    # Panel 1: Toy example — umbrella VoI
+    # =====================================================================
+    ax = axes[0]
+
+    # Umbrella payoffs (same as section 9.1)
+    # Actions: Llevar (0), No llevar (1). States: Lluvia (0), Sol (1)
+    U = np.array([[8, 5], [1, 10]])
+    p_rain = 0.4
+    probs = np.array([p_rain, 1 - p_rain])
+
+    # Without info: pick best EU
+    eu_per_action = U @ probs  # [6.2, 6.4]
+    eu_without = eu_per_action.max()  # 6.4 (no llevar)
+
+    # With perfect info: pick best action for each state
+    eu_perfect = probs[0] * U[:, 0].max() + probs[1] * U[:, 1].max()
+    # = 0.4*8 + 0.6*10 = 3.2 + 6.0 = 9.2
+    vpi_umb = eu_perfect - eu_without  # 9.2 - 6.4 = 2.8
+
+    labels = ["Sin info\n(mejor EU)", "Con info\nperfecta"]
+    vals = [eu_without, eu_perfect]
+    bar_colors = [COLORS["red"], COLORS["green"]]
+    bars = ax.bar(labels, vals, color=bar_colors, edgecolor="black",
+                  linewidth=1.2, width=0.55)
+    for bar, v in zip(bars, vals):
+        ax.text(bar.get_x() + bar.get_width() / 2, v + 0.15,
+                f"{v:.1f}", ha="center", fontsize=12, fontweight="bold")
+
+    # VPI arrow between bars
+    ax.annotate("", xy=(1, eu_perfect - 0.05), xytext=(1, eu_without + 0.05),
+                arrowprops=dict(arrowstyle="<->", lw=2.5, color=COLORS["purple"]))
+    ax.text(1.35, (eu_perfect + eu_without) / 2, f"VPI = {vpi_umb:.1f}",
+            fontsize=12, fontweight="bold", color=COLORS["purple"],
+            va="center",
+            bbox=dict(boxstyle="round,pad=0.3", facecolor="#F3E5F5", alpha=0.9))
+
+    ax.set_ylabel("Utilidad esperada", fontsize=11)
+    ax.set_ylim(0, 11)
+    ax.set_title("Ejemplo: paraguas", fontsize=12, fontweight="bold")
+    ax.text(0.03, 0.97,
+            "P(Lluvia)=0.4\n"
+            "Sin info: No llevar (EU=6.4)\n"
+            "Lluvia→Llevar, Sol→No llevar",
+            transform=ax.transAxes, fontsize=8, va="top",
+            bbox=dict(boxstyle="round,pad=0.3", facecolor="#E8F4F8", alpha=0.9))
+
+    # =====================================================================
+    # Panel 2: Medical decision — cleaner bar chart
+    # =====================================================================
+    ax = axes[1]
 
     p_sick = 0.1
-    # Payoffs
-    u_treat_sick = 150     # benefit - cost
-    u_treat_healthy = -50  # just the cost
-    u_no_sick = -200       # untreated disease
-    u_no_healthy = 0       # nothing happens
+    u_treat_sick = 150
+    u_treat_healthy = -50
+    u_no_sick = -200
+    u_no_healthy = 0
 
-    eu_treat = p_sick * u_treat_sick + (1 - p_sick) * u_treat_healthy
-    eu_no = p_sick * u_no_sick + (1 - p_sick) * u_no_healthy
-    eu_without = max(eu_treat, eu_no)
-    best_without = "No tratar" if eu_no >= eu_treat else "Tratar"
+    eu_treat = p_sick * u_treat_sick + (1 - p_sick) * u_treat_healthy  # -30
+    eu_no = p_sick * u_no_sick + (1 - p_sick) * u_no_healthy           # -20
+    eu_without_med = max(eu_treat, eu_no)  # -20
 
-    # Perfect info
-    eu_perfect = p_sick * max(u_treat_sick, u_no_sick) + \
-                 (1 - p_sick) * max(u_treat_healthy, u_no_healthy)
-    vpi = eu_perfect - eu_without
+    eu_perfect_med = p_sick * max(u_treat_sick, u_no_sick) + \
+                     (1 - p_sick) * max(u_treat_healthy, u_no_healthy)  # 15
+    vpi_med = eu_perfect_med - eu_without_med  # 35
 
-    # --- Left panel: bar chart ---
-    labels = ["EU(Tratar)", "EU(No tratar)", "EU(info perfecta)"]
-    values = [eu_treat, eu_no, eu_perfect]
-    colors_bars = [COLORS["blue"], COLORS["red"], COLORS["green"]]
-    bars = ax1.bar(labels, values, color=colors_bars, edgecolor="black", linewidth=1.2)
+    labels = ["Tratar\n(siempre)", "No tratar\n(siempre)", "Con info\nperfecta"]
+    vals = [eu_treat, eu_no, eu_perfect_med]
+    bar_colors = [COLORS["blue"], COLORS["red"], COLORS["green"]]
+    bars = ax.bar(labels, vals, color=bar_colors, edgecolor="black",
+                  linewidth=1.2, width=0.55)
 
-    for bar, v in zip(bars, values):
-        y_pos = v + 1 if v >= 0 else v - 4
-        ax1.text(bar.get_x() + bar.get_width() / 2, y_pos, f"{v:.0f}",
-                ha="center", fontsize=12, fontweight="bold")
+    for bar, v in zip(bars, vals):
+        y_pos = v + 2 if v >= 0 else v - 5
+        ax.text(bar.get_x() + bar.get_width() / 2, y_pos,
+                f"{v:.0f}", ha="center", fontsize=12, fontweight="bold")
 
-    # VoI annotation
-    ax1.annotate("", xy=(2, eu_perfect), xytext=(2, eu_without),
+    # VPI bracket from best-without to perfect
+    # Draw on the right side of the third bar
+    x_arrow = 2.35
+    ax.annotate("", xy=(x_arrow, eu_perfect_med), xytext=(x_arrow, eu_without_med),
                 arrowprops=dict(arrowstyle="<->", lw=2.5, color=COLORS["purple"]))
-    ax1.text(2.45, (eu_perfect + eu_without) / 2,
-             f"VPI = {vpi:.0f}",
-             fontsize=12, fontweight="bold", color=COLORS["purple"],
-             bbox=dict(boxstyle="round,pad=0.3", facecolor="#F3E5F5", alpha=0.9))
+    ax.text(x_arrow + 0.12, (eu_perfect_med + eu_without_med) / 2,
+            f"VPI\n= {vpi_med:.0f}",
+            fontsize=11, fontweight="bold", color=COLORS["purple"],
+            va="center",
+            bbox=dict(boxstyle="round,pad=0.3", facecolor="#F3E5F5", alpha=0.9))
 
-    ax1.axhline(0, color="black", linewidth=0.5)
-    ax1.set_ylabel("Utilidad esperada")
-    ax1.set_title("Decisión médica: Valor de la Información Perfecta", fontsize=12)
-    ax1.text(0.02, 0.98,
-             f"P(enfermo) = {p_sick}\n"
-             f"Mejor sin info: {best_without} (EU = {eu_without:.0f})\n"
-             f"Con info perfecta: EU = {eu_perfect:.0f}\n"
-             f"VPI = {vpi:.0f}",
-             transform=ax1.transAxes, fontsize=9, va="top",
-             bbox=dict(boxstyle="round,pad=0.4", facecolor="#E8F4F8", alpha=0.9))
+    ax.axhline(0, color="black", linewidth=0.5)
+    ax.set_ylabel("Utilidad esperada", fontsize=11)
+    ax.set_title("Ejemplo: test médico", fontsize=12, fontweight="bold")
+    ax.set_ylim(-40, 22)
+    ax.text(0.03, 0.97,
+            f"P(enfermo) = {p_sick}\n"
+            f"Mejor sin info: No tratar (EU={eu_without_med:.0f})",
+            transform=ax.transAxes, fontsize=8, va="top",
+            bbox=dict(boxstyle="round,pad=0.3", facecolor="#E8F4F8", alpha=0.9))
 
-    # --- Right panel: VoI vs test accuracy ---
-    accuracies = np.linspace(0.5, 1.0, 100)
+    # =====================================================================
+    # Panel 3: VoI vs test accuracy (right plot, cleaned up)
+    # =====================================================================
+    ax = axes[2]
+
+    accuracies = np.linspace(0.5, 1.0, 200)
     vois = []
-
     for acc in accuracies:
-        # Imperfect test: P(+|sick) = acc, P(-|healthy) = acc
-        # P(sick|+) = acc * p_sick / (acc*p_sick + (1-acc)*(1-p_sick))
-        # P(sick|-) = (1-acc)*p_sick / ((1-acc)*p_sick + acc*(1-p_sick))
         p_pos = acc * p_sick + (1 - acc) * (1 - p_sick)
         p_neg = 1 - p_pos
         p_sick_pos = acc * p_sick / p_pos if p_pos > 0 else 0
         p_sick_neg = (1 - acc) * p_sick / p_neg if p_neg > 0 else 0
 
-        # EU given positive test
         eu_treat_pos = p_sick_pos * u_treat_sick + (1 - p_sick_pos) * u_treat_healthy
         eu_no_pos = p_sick_pos * u_no_sick + (1 - p_sick_pos) * u_no_healthy
         best_pos = max(eu_treat_pos, eu_no_pos)
 
-        # EU given negative test
         eu_treat_neg = p_sick_neg * u_treat_sick + (1 - p_sick_neg) * u_treat_healthy
         eu_no_neg = p_sick_neg * u_no_sick + (1 - p_sick_neg) * u_no_healthy
         best_neg = max(eu_treat_neg, eu_no_neg)
 
         eu_with_test = p_pos * best_pos + p_neg * best_neg
-        voi = eu_with_test - eu_without
-        vois.append(voi)
+        vois.append(eu_with_test - eu_without_med)
 
-    ax2.plot(accuracies * 100, vois, color=COLORS["purple"], linewidth=2.5)
-    ax2.fill_between(accuracies * 100, 0, vois, alpha=0.15, color=COLORS["purple"])
-    ax2.axhline(vpi, color=COLORS["green"], linestyle="--", linewidth=1.5,
-                label=f"VPI = {vpi:.0f}")
-    ax2.set_xlabel("Precisión del test (%)", fontsize=12)
-    ax2.set_ylabel("Valor de la Información", fontsize=12)
-    ax2.set_title("VoI crece con la calidad del test", fontsize=12)
-    ax2.legend(fontsize=10)
-    ax2.set_xlim(50, 100)
-    ax2.set_ylim(bottom=0)
-    ax2.text(0.5, 0.05, "Test al 50% = moneda al aire (VoI = 0)\n"
-             "Test al 100% = info perfecta (VoI = VPI)",
-             transform=ax2.transAxes, ha="center", fontsize=9,
-             bbox=dict(boxstyle="round,pad=0.3", facecolor="#FFF3CD", alpha=0.9))
+    ax.plot(accuracies * 100, vois, color=COLORS["purple"], linewidth=2.5,
+            label="VoI del test")
+    ax.fill_between(accuracies * 100, 0, vois, alpha=0.1, color=COLORS["purple"])
+    ax.axhline(vpi_med, color=COLORS["green"], linestyle="--", linewidth=1.5,
+               label=f"VPI = {vpi_med:.0f} (techo)")
 
-    fig.suptitle("Valor de la Información en diagnóstico médico", fontsize=14, y=1.02)
+    # Mark key points
+    ax.scatter([50], [0], color=COLORS["gray"], s=80, zorder=5, edgecolors="black")
+    ax.scatter([100], [vpi_med], color=COLORS["green"], s=80, zorder=5,
+               edgecolors="black")
+    ax.annotate("Moneda al aire\n(VoI = 0)", xy=(50, 0), xytext=(55, 8),
+                arrowprops=dict(arrowstyle="->", lw=1.2), fontsize=9)
+    ax.annotate("Info perfecta\n(VoI = VPI)", xy=(100, vpi_med), xytext=(85, 28),
+                arrowprops=dict(arrowstyle="->", lw=1.2), fontsize=9)
+
+    ax.set_xlabel("Precisión del test (%)", fontsize=11)
+    ax.set_ylabel("Valor de la Información", fontsize=11)
+    ax.set_title("VoI crece con calidad del test", fontsize=12, fontweight="bold")
+    ax.legend(fontsize=9, loc="upper left")
+    ax.set_xlim(50, 102)
+    ax.set_ylim(-1, vpi_med + 5)
+
+    fig.suptitle("Valor de la Información: ¿cuánto vale saber más antes de decidir?",
+                 fontsize=14, y=1.02)
     fig.tight_layout()
     _save(fig, "06_voi_medical.png")
 
@@ -679,6 +723,121 @@ def plot_maximin_vs_meu():
 # -----------------------------------------------------------------------------
 # 8) Newsvendor problem
 # -----------------------------------------------------------------------------
+
+
+def plot_newsvendor_derivation():
+    """Step-by-step derivation: cost for one demand, cost for many, CDF solution."""
+    mu_demand = 50
+    sigma_demand = 15
+    c_o = 2
+    c_u = 7
+    cr = c_u / (c_o + c_u)
+    q_star = norm.ppf(cr, mu_demand, sigma_demand)
+
+    fig, axes = plt.subplots(1, 3, figsize=(18, 5.5))
+
+    # --- Panel 1: Cost function for a SINGLE demand realization ---
+    ax = axes[0]
+    q_fix = 60  # fixed order
+    d_vals = np.linspace(0, 100, 500)
+    cost_over = c_o * np.maximum(q_fix - d_vals, 0)
+    cost_under = c_u * np.maximum(d_vals - q_fix, 0)
+
+    ax.plot(d_vals, cost_over, color=COLORS["purple"], linewidth=2,
+            label=f"Exceso: $c_o \\times (q-D)^+$")
+    ax.plot(d_vals, cost_under, color=COLORS["orange"], linewidth=2,
+            label=f"Escasez: $c_u \\times (D-q)^+$")
+    ax.plot(d_vals, cost_over + cost_under, color=COLORS["red"], linewidth=2.5,
+            linestyle="--", label="Costo total")
+    ax.axvline(q_fix, color=COLORS["gray"], linewidth=1, linestyle=":")
+    ax.text(q_fix + 1, ax.get_ylim()[1] * 0.6 if ax.get_ylim()[1] > 0 else 50,
+            f"q = {q_fix}", fontsize=10, color=COLORS["gray"])
+
+    ax.set_xlabel("Demanda realizada (D)", fontsize=11)
+    ax.set_ylabel("Costo", fontsize=11)
+    ax.set_title("Paso 1: costo si D es conocida", fontsize=12, fontweight="bold")
+    ax.legend(fontsize=8, loc="upper center")
+    ax.text(0.03, 0.97,
+            f"q = {q_fix} fijo\n"
+            f"Si D < q: sobran q-D\n"
+            f"Si D > q: faltan D-q",
+            transform=ax.transAxes, fontsize=8, va="top",
+            bbox=dict(boxstyle="round,pad=0.3", facecolor="#FFF3CD", alpha=0.9))
+
+    # --- Panel 2: Expected cost vs q (averaging over D) ---
+    ax = axes[1]
+    qs = np.linspace(10, 90, 300)
+    d_grid = np.linspace(0, 120, 1000)
+    p_d = norm.pdf(d_grid, mu_demand, sigma_demand)
+    p_d = p_d / p_d.sum()
+
+    exp_costs = []
+    for q in qs:
+        overage = c_o * np.maximum(q - d_grid, 0)
+        underage = c_u * np.maximum(d_grid - q, 0)
+        exp_costs.append(((overage + underage) * p_d).sum())
+    exp_costs = np.array(exp_costs)
+
+    ax.plot(qs, exp_costs, color=COLORS["blue"], linewidth=2.5)
+    ax.axvline(q_star, color=COLORS["red"], linewidth=2, linestyle="--")
+    ax.scatter([q_star], [exp_costs.min()], color=COLORS["red"], s=100,
+               zorder=5, edgecolors="black")
+    ax.axvline(mu_demand, color=COLORS["gray"], linewidth=1, linestyle=":")
+    ax.text(mu_demand - 1, exp_costs.max() * 0.9, f"E[D]={mu_demand}",
+            fontsize=9, ha="right", color=COLORS["gray"])
+    ax.text(q_star + 1, exp_costs.min() + 2,
+            f"$q^{{\\ast}}$ = {q_star:.1f}", fontsize=10, color=COLORS["red"],
+            fontweight="bold")
+
+    ax.set_xlabel("Cantidad a ordenar (q)", fontsize=11)
+    ax.set_ylabel("E[Costo(q)]", fontsize=11)
+    ax.set_title("Paso 2: promedia sobre D", fontsize=12, fontweight="bold")
+    ax.text(0.03, 0.97,
+            "Promediamos el costo\n"
+            "del Paso 1 sobre\n"
+            "todas las D posibles\n"
+            "y minimizamos",
+            transform=ax.transAxes, fontsize=8, va="top",
+            bbox=dict(boxstyle="round,pad=0.3", facecolor="#E8F4F8", alpha=0.9))
+
+    # --- Panel 3: CDF intuition ---
+    ax = axes[2]
+    d_x = np.linspace(0, 100, 500)
+    cdf_vals = norm.cdf(d_x, mu_demand, sigma_demand)
+
+    ax.plot(d_x, cdf_vals, color=COLORS["green"], linewidth=2.5, label="$F(q) = P(D \\leq q)$")
+    ax.axhline(cr, color=COLORS["orange"], linewidth=1.5, linestyle="--",
+               label=f"Ratio critico = {cr:.3f}")
+    ax.axvline(q_star, color=COLORS["red"], linewidth=2, linestyle="--")
+    ax.scatter([q_star], [cr], color=COLORS["red"], s=120, zorder=5,
+               edgecolors="black", linewidths=2)
+
+    # Dashed lines to axes
+    ax.plot([0, q_star], [cr, cr], ":", color=COLORS["gray"], linewidth=1)
+    ax.plot([q_star, q_star], [0, cr], ":", color=COLORS["gray"], linewidth=1)
+
+    ax.text(q_star + 1.5, cr, f"$q^{{\\ast}}$ = {q_star:.1f}", fontsize=11,
+            color=COLORS["red"], fontweight="bold", va="center")
+    ax.text(2, cr + 0.03,
+            f"$c_u/(c_o+c_u)$ = {cr:.3f}", fontsize=9, color=COLORS["orange"])
+
+    ax.set_xlabel("q", fontsize=11)
+    ax.set_ylabel("F(q) = P(D <= q)", fontsize=11)
+    ax.set_title("Paso 3: la solución es $F^{-1}$", fontsize=12, fontweight="bold")
+    ax.legend(fontsize=8, loc="lower right")
+    ax.set_ylim(0, 1.05)
+    ax.text(0.03, 0.6,
+            "Derivar E[C(q)] e\n"
+            "igualar a 0 da:\n"
+            "$F(q^{\\ast}) = c_u/(c_o+c_u)$\n"
+            "Invertir: $q^{\\ast} = F^{-1}(\\cdot)$",
+            transform=ax.transAxes, fontsize=8, va="top",
+            bbox=dict(boxstyle="round,pad=0.3", facecolor="#E8F8E8", alpha=0.9))
+
+    fig.suptitle("Newsvendor: de la intuicion a la formula, paso a paso",
+                 fontsize=14, y=1.02)
+    fig.tight_layout()
+    _save(fig, "08b_newsvendor_derivation.png")
 
 
 def plot_newsvendor():
@@ -890,6 +1049,7 @@ def main():
     plot_decision_tree()
     plot_voi_medical()
     plot_maximin_vs_meu()
+    plot_newsvendor_derivation()
     plot_newsvendor()
     plot_mean_variance_frontier()
     print(f"\n  Todas las imagenes generadas en {IMAGES_DIR}")

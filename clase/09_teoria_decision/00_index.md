@@ -15,7 +15,7 @@ Solo tienen que realizar las primeras dos secciones, 10 puntos extra en tareas s
 
 El módulo anterior mostró cómo predecir — estimar $P(Y \mid X)$, cuantificar incertidumbre, elegir el modelo correcto. Pero predecir no es decidir. Un modelo perfecto de pronóstico del clima no te dice si llevar paraguas. Una predicción de ventas no te dice cuánto producir. El oráculo ve, pero no elige.
 
-Este módulo introduce **teoría de la decisión**: el marco formal para agentes que deben **actuar** bajo incertidumbre. Combina probabilidad (mod 05), optimización (mod 07) y predicción (mod 08) en una sola fórmula:
+Este módulo introduce **teoría de la decisión**: el marco formal para agentes que deben **actuar** bajo incertidumbre. Combina probabilidad (módulo 05), optimización (módulo 07) y predicción (módulo 08) en una sola fórmula:
 
 $$a^{∗} = \arg\max_{a \in A} \sum_{s \in S} P(s) \cdot U(o(a, s))$$
 
@@ -73,7 +73,12 @@ Al terminar este módulo podrás:
 5. **Calcular** el Valor de la Información (VoI) y determinar cuándo vale la pena obtener más datos.
 6. **Formular** el problema del vendedor de periódicos y derivar la cantidad óptima.
 7. **Distinguir** entre los criterios MEU, maximin y minimax regret, y cuándo usar cada uno.
-8. **Analizar** cómo la predicción (mod 08) alimenta las decisiones y cuándo una predicción tiene valor real.
+8. **Analizar** cómo la predicción (módulo 08) alimenta las decisiones y cuándo una predicción tiene valor real.
+
+## Lectura: Decision Problems (DMUU Ch. 3)
+
+:::pdf{src="{{ '/09_teoria_decision/lecturas_decision.pdf' | url }}" height="800px"}
+:::
 
 ---
 

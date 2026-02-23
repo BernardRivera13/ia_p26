@@ -19,14 +19,19 @@ o más compactamente:
 
 $$a^{∗} = \arg\max_{a \in A} \; E_S[U(a, S)]$$
 
-**Observación clave:** Esto es optimización (mod 07), pero con un ingrediente nuevo — la probabilidad. En lugar de maximizar $f(x)$ directamente, maximizamos el *promedio ponderado* de $U$ sobre los posibles estados.
+Cuando el agente observa evidencia $x$ antes de decidir (lo que viene de predicción), las creencias se actualizan y la fórmula se condiciona:
+
+$$a^{∗}(x) = \arg\max_{a \in A} \sum_{s \in S} P(s \mid x) \cdot U(o(a, s))$$
+
+La versión sin condicionar usa la prior $P(s)$; la versión condicionada usa la posterior $P(s \mid x)$, que es exactamente lo que el módulo 08 nos enseñó a estimar. El principio es el mismo — solo cambian las creencias.
+
+**Observación clave:** Esto es optimización (módulo 07), pero con un ingrediente nuevo — la probabilidad. En lugar de maximizar $f(x)$ directamente, maximizamos el *promedio ponderado* de $U$ sobre los posibles estados.
 
 | Componente | Viene de... |
 |-----------|------------|
-| $\arg\max$ | Optimización (mod 07) |
-| $P(s)$ | Probabilidad (mod 05) |
+| $\arg\max$ | Optimización (módulo 07) |
+| $P(s)$ o $P(s \mid x)$ | Probabilidad (módulo 05) + Predicción (módulo 08) |
 | $U(o(a,s))$ | Preferencias (sección 9.2) |
-| $P(s)$ estimado | Predicción (mod 08) |
 
 :::example{title="Paraguas con MEU"}
 Con $P(\text{Lluvia}) = 0.4$, $P(\text{Sol}) = 0.6$:
@@ -116,62 +121,133 @@ Las flechas representan:
 - **Hacia nodos de decisión:** información disponible al decidir
 - **Hacia nodos de utilidad:** variables que afectan la utilidad
 
+:::example{title="Red de decisión: test médico"}
+
+```mermaid
+graph LR
+    E(("Enfermedad<br/>(azar)"))
+    T["Test<br/>(decisión)"]
+    R(("Resultado test<br/>(azar)"))
+    Tr["Tratar<br/>(decisión)"]
+    U{{"Utilidad"}}
+
+    E -->|"P(E)"| R
+    T -->|"hacer/no"| R
+    R -->|"informa"| Tr
+    E --> U
+    Tr --> U
+    T --> U
+```
+
+- **Óvalos** (Enfermedad, Resultado): variables aleatorias
+- **Rectángulos** (Test, Tratar): decisiones del agente
+- **Diamante** (Utilidad): función que depende de la enfermedad real, el tratamiento elegido y el costo del test
+- La flecha de Resultado → Tratar significa que observamos el resultado del test *antes* de decidir si tratar
+:::
+
 La ventaja sobre árboles: representación compacta cuando hay muchas variables. Un árbol con 5 variables binarias tiene $2^5 = 32$ hojas; una red tiene 5 nodos.
 
 ---
 
 ## Valor de la Información
 
-Una de las preguntas más poderosas en teoría de la decisión es: **¿cuánto vale obtener más información antes de decidir?**
+Una de las preguntas más poderosas en teoría de la decisión: **¿cuánto vale obtener más información antes de decidir?**
 
-### Definición
+### La idea en un ejemplo
 
-$$\text{VoI}(E) = EU(\text{con info } E) - EU(\text{sin info})$$
+Imagina el problema del paraguas con $P(\text{Lluvia}) = 0.4$:
 
-donde $EU(\text{con info } E)$ significa: primero observamos $E$, luego decidimos óptimamente.
+**Sin información** (decides a ciegas):
+- $EU(\text{Llevar}) = 0.4 \times 8 + 0.6 \times 5 = 6.2$
+- $EU(\text{No llevar}) = 0.4 \times 1 + 0.6 \times 10 = 6.4$ ← mejor
+- Eliges "no llevar", $EU = 6.4$
 
-**Propiedad fundamental:** $\text{VoI}(E) \geq 0$ — la información nunca tiene valor negativo (siempre puedes ignorarla).
+**Con información perfecta** (alguien te dice el clima antes de salir):
+- Si llueve ($p = 0.4$): eliges llevar → utilidad 8
+- Si sol ($p = 0.6$): eliges no llevar → utilidad 10
+- $EU = 0.4 \times 8 + 0.6 \times 10 = 9.2$
+
+La diferencia es el **Valor de la Información Perfecta**:
+
+$$\text{VPI} = 9.2 - 6.4 = 2.8$$
+
+¿Qué pasó? Con información, puedes **adaptar** tu acción al estado real. Sin información, estás atrapado en una sola acción para todos los estados. El VPI mide cuánto vale poder adaptarse.
+
+### Definición formal
+
+Para cualquier fuente de información $E$:
+
+$$\text{VoI}(E) = \underbrace{EU(\text{decide después de observar } E)}_{\text{primero observas, luego decides}} - \underbrace{EU(\text{decide sin } E)}_{\text{decides a ciegas}}$$
+
+**Propiedad fundamental:** $\text{VoI}(E) \geq 0$. La información nunca tiene valor negativo — en el peor caso, la ignoras y decides igual que antes.
 
 ### Valor de la Información Perfecta (VPI)
 
-Si pudiéramos saber *exactamente* qué estado ocurrirá antes de decidir:
+El VPI es el caso extremo: sabes *exactamente* qué estado va a ocurrir.
 
-$$\text{VPI} = \left(\sum_{s} P(s) \cdot \max_a U(a, s)\right) - \max_a E[U(a)]$$
+$$\text{VPI} = \underbrace{\sum_{s} P(s) \cdot \max_a U(a, s)}_{\text{adaptas la acción a cada estado}} - \underbrace{\max_a \sum_s P(s) \cdot U(a, s)}_{\text{una sola acción para todos}}$$
 
-El primer término es la EU cuando podemos adaptar nuestra acción a cada estado. El segundo es la EU cuando debemos elegir una acción fija.
+**Intuición matemática:** El primer término pone el $\max$ *adentro* de la suma (eliges la mejor acción *para cada estado*). El segundo pone el $\max$ *afuera* (eliges una acción fija y promedias). Como $\max$ adentro $\geq$ $\max$ afuera (siempre es mejor adaptarse que comprometerse), el VPI es siempre $\geq 0$.
+
+:::example{title="VPI del paraguas (paso a paso)"}
+$\max$ adentro (adaptarse):
+- Lluvia: $\max(8, 1) = 8$ (llevar)
+- Sol: $\max(5, 10) = 10$ (no llevar)
+- $EU = 0.4 \times 8 + 0.6 \times 10 = 9.2$
+
+$\max$ afuera (comprometerse):
+- Llevar: $0.4 \times 8 + 0.6 \times 5 = 6.2$
+- No llevar: $0.4 \times 1 + 0.6 \times 10 = 6.4$
+- $\max(6.2, 6.4) = 6.4$
+
+$\text{VPI} = 9.2 - 6.4 = 2.8$
+:::
+
+### Ejemplo: diagnóstico médico
+
+Un ejemplo más realista donde los números importan más:
+
+| | Enfermo ($p = 0.1$) | Sano ($p = 0.9$) |
+|---|:---:|:---:|
+| **Tratar** | 150 | -50 |
+| **No tratar** | -200 | 0 |
+
+**Sin información:**
+- $EU(\text{Tratar}) = 0.1 \times 150 + 0.9 \times (-50) = 15 - 45 = -30$
+- $EU(\text{No tratar}) = 0.1 \times (-200) + 0.9 \times 0 = -20$ ← mejor
+- Mejor decisión: no tratar, $EU = -20$
+
+**Con información perfecta (test infalible):**
+- Si enfermo ($p = 0.1$): tratar (150 > -200)
+- Si sano ($p = 0.9$): no tratar (0 > -50)
+- $EU = 0.1 \times 150 + 0.9 \times 0 = 15$
+
+$$\text{VPI} = 15 - (-20) = 35$$
+
+Un test diagnóstico perfecto vale 35 unidades de utilidad. Si el test cuesta menos que eso, **vale la pena hacerlo**.
+
+**¿Y un test imperfecto?** Si el test tiene 80% de precisión (no infalible), su VoI es menor que 35 pero mayor que 0. Mientras mejor sea el test, más se acerca al VPI.
 
 ![Valor de la Información]({{ '/09_teoria_decision/images/06_voi_medical.png' | url }})
 
-:::example{title="VoI en diagnóstico médico"}
-Con $P(\text{enfermo}) = 0.1$:
+### ¿Cuándo vale la pena buscar más información?
 
-**Sin información:**
-- $EU(\text{Tratar}) = 0.1 \times 150 + 0.9 \times (-50) = -30$
-- $EU(\text{No tratar}) = 0.1 \times (-200) + 0.9 \times 0 = -20$
-- Mejor: No tratar ($EU = -20$)
+El VoI convierte "¿debería obtener más datos?" en una cuenta:
 
-**Con información perfecta:**
-- Si enfermo ($p = 0.1$): tratar ($150 > -200$)
-- Si sano ($p = 0.9$): no tratar ($0 > -50$)
-- $EU = 0.1 \times 150 + 0.9 \times 0 = 15$
+| Situación | Qué pasa | Acción |
+|-----------|----------|--------|
+| Info no cambia la decisión | $\text{VoI} = 0$ | Actuar ahora |
+| Info podría cambiar la decisión | $\text{VoI} > 0$ | Comparar costo vs VoI |
+| Costo de obtener info $<$ VoI | Ganancia neta | Obtener más datos |
+| Costo de obtener info $>$ VoI | Pérdida neta | Actuar con lo que sabes |
 
-$\text{VPI} = 15 - (-20) = 35$
+:::example{title="Cuando VoI = 0"}
+Un hospital de urgencias trata a **todos** los pacientes sin importar el diagnóstico (el costo de no tratar es catastrófico). Un equipo de ML construye un modelo con 95% de accuracy.
 
-Un test diagnóstico perfecto vale 35 unidades de utilidad. Si el test cuesta menos que eso, **vale la pena hacerlo**.
+$\text{VoI} = 0$ — el modelo no cambia ninguna decisión. El hospital trata a todos de todos modos. La predicción perfecta no vale nada aquí, no porque sea mala, sino porque la acción óptima es la misma con o sin ella.
 :::
 
-### Cuándo obtener más datos vs actuar ahora
-
-El VoI da una respuesta cuantitativa a esta pregunta:
-
-| Situación | VoI | Acción |
-|-----------|-----|--------|
-| Info no cambia la decisión | $\text{VoI} = 0$ | Actuar ahora |
-| Info podría cambiar la decisión | $\text{VoI} > 0$ | Evaluar costo de info vs VoI |
-| Costo de info $<$ VoI | — | Obtener más datos |
-| Costo de info $>$ VoI | — | Actuar con lo que sabes |
-
-**Implicación para ML:** Un modelo predictivo solo tiene valor si **cambia la decisión** que tomarías sin él. Un modelo con 95% de accuracy puede tener $\text{VoI} = 0$ si la decisión óptima es la misma con o sin la predicción.
+**Regla práctica para ML:** Antes de construir un modelo predictivo, pregunta: *¿existe una decisión que este modelo podría cambiar?* Si no, el modelo no tiene valor operativo.
 
 ---
 

@@ -30,12 +30,12 @@ Dado dos resultados (o "loterías") $A$ y $B$:
 
 Una **lotería** es un resultado aleatorio. Se escribe:
 
-$$L = [S_1 : p \;;\; S_2 : 1-p]$$
+$$L = [S_1 : p \;,\; S_2 : 1-p]$$
 
 que significa: "obtienes $S_1$ con probabilidad $p$, o $S_2$ con probabilidad $1 - p$".
 
 :::example{title="Lotería del paraguas"}
-$L = [\text{Seco} : 0.6 \;;\; \text{Empapado} : 0.4]$
+$L = [\text{Seco} : 0.6 \;,\; \text{Empapado} : 0.4]$
 
 ¿Prefieres esta lotería o la certeza de estar "ligeramente húmedo"? Tu respuesta revela tus preferencias.
 :::
@@ -61,15 +61,15 @@ Cuatro axiomas que capturan "preferencias racionales":
 **Intuición:** Tus preferencias no forman ciclos. Si prefieres pizza a sushi y sushi a hamburguesa, entonces prefieres pizza a hamburguesa.
 
 **Contraejemplo (money pump):** Si $A \succ B \succ C \succ A$ (preferencias cíclicas), un agente inteligente puede sacarte dinero infinito:
-1. Tienes $C$. "¿Pagas &#36;1 para cambiar a $B$?" — Sí ($B \succ C$).
-2. Tienes $B$. "¿Pagas &#36;1 para cambiar a $A$?" — Sí ($A \succ B$).
-3. Tienes $A$. "¿Pagas &#36;1 para cambiar a $C$?" — Sí ($C \succ A$).
-4. Volviste a $C$... y perdiste &#36;3.
+1. Tienes C. "¿Pagas 1 peso para cambiar a B?" — Sí ($B \succ C$).
+2. Tienes B. "¿Pagas 1 peso para cambiar a A?" — Sí ($A \succ B$).
+3. Tienes A. "¿Pagas 1 peso para cambiar a C?" — Sí ($C \succ A$).
+4. Volviste a C... y perdiste 3 pesos.
 
 ### Axioma 3: Continuidad
 
 > Si $A \succ B \succ C$, existe un $p \in (0, 1)$ tal que:
-> $$B \sim [A : p \;;\; C : 1-p]$$
+> $$B \sim [A : p \;,\; C : 1-p]$$
 
 **Intuición:** No hay resultados "infinitamente buenos" ni "infinitamente malos". Siempre existe una mezcla de probabilidades que te hace indiferente.
 
@@ -78,7 +78,7 @@ Cuatro axiomas que capturan "preferencias racionales":
 ### Axioma 4: Independencia
 
 > Si $A \succeq B$, entonces para todo $C$ y todo $p \in (0, 1)$:
-> $$[A : p \;;\; C : 1-p] \succeq [B : p \;;\; C : 1-p]$$
+> $$[A : p \;,\; C : 1-p] \succeq [B : p \;,\; C : 1-p]$$
 
 **Intuición:** Mezclar ambas opciones con un mismo "ruido" $C$ no cambia la preferencia. Si prefieres pizza a sushi, mezclar cada uno con una moneda al aire que da "ensalada" no debería cambiar tu ranking.
 
@@ -157,18 +157,18 @@ Los humanos violan sistemáticamente los axiomas vNM. Esto importa para IA porqu
 ### La paradoja de Allais (viola Independencia)
 
 Elige entre:
-- **A:** &#36;1 millón seguro
-- **B:** [&#36;5M : 0.10 ; &#36;1M : 0.89 ; &#36;0 : 0.01]
+- **A:** 1M seguro
+- **B:** $[5\text{M} : 0.10 \;,\; 1\text{M} : 0.89 \;,\; 0 : 0.01]$
 
 La mayoría elige A (certeza).
 
 Ahora elige entre:
-- **C:** [&#36;1M : 0.11 ; &#36;0 : 0.89]
-- **D:** [&#36;5M : 0.10 ; &#36;0 : 0.90]
+- **C:** $[1\text{M} : 0.11 \;,\; 0 : 0.89]$
+- **D:** $[5\text{M} : 0.10 \;,\; 0 : 0.90]$
 
 La mayoría elige D (mayor pago esperado).
 
-Pero elegir $A$ y $D$ es inconsistente con el axioma de independencia — si restamos la parte común $[\text{&#36;1M} : 0.89]$ de A y B, obtenemos C y D.
+Pero elegir A y D es inconsistente con el axioma de independencia — si restamos la parte común $[1\text{M} : 0.89]$ de A y B, obtenemos C y D.
 
 ### Efectos de framing
 

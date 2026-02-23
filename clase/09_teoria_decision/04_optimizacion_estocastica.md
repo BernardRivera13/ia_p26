@@ -15,7 +15,7 @@ En el módulo 07, optimizábamos funciones deterministas: dado $x$, el valor $f(
 
 La transición es directa:
 
-| Optimización determinista (mod 07) | Optimización estocástica (mod 09) |
+| Optimización determinista (módulo 07) | Optimización estocástica (módulo 09) |
 |-------------------------------------|-------------------------------------|
 | $\min_x f(x)$ | $\min_x E_\theta[f(x, \theta)]$ |
 | Variables de decisión $x$ | Variables de decisión $x$ |
@@ -31,83 +31,126 @@ Aquí $\theta$ representa la incertidumbre — un estado del mundo que no contro
 
 ## El problema del vendedor de periódicos
 
-El **newsvendor problem** es el ejemplo canónico de optimización estocástica. Es elegante porque tiene solución cerrada y conecta predicción con decisión.
+El **newsvendor problem** es el ejemplo canónico de optimización estocástica. Lo construimos paso a paso.
 
-### Planteamiento
+### Paso 1: el costo para una demanda conocida
 
-Un vendedor debe decidir cuántos periódicos ordenar ($q$) **antes** de saber la demanda ($D$):
+Un vendedor debe decidir cuántos periódicos ordenar ($q$) **antes** de saber la demanda ($D$). Si después resulta que la demanda es $D = d$:
 
-- Si ordena **de más** ($q > D$): pierde $c_o$ por cada periódico sobrante (*overage cost*)
-- Si ordena **de menos** ($q < D$): pierde $c_u$ por cada cliente no atendido (*underage cost*)
+- **Sobraron** $q - d$ periódicos (si $q > d$): pierde $c_o$ por cada sobrante
+- **Faltaron** $d - q$ periódicos (si $d > q$): pierde $c_u$ por cada cliente no atendido
 
-El objetivo es minimizar el costo esperado:
+El costo para una demanda conocida $d$ es:
 
-$$\min_q \; E_D\left[c_o \cdot \max(q - D, 0) + c_u \cdot \max(D - q, 0)\right]$$
+$$C(q, d) = c_o \cdot \max(q - d,\; 0) + c_u \cdot \max(d - q,\; 0)$$
 
-### Solución
+**Si $d$ fuera conocido**, la respuesta trivial es $q = d$ (costo = 0). Pero no conocemos $d$ — eso es lo que hace al problema interesante.
 
-La cantidad óptima es:
+### Paso 2: promediamos sobre la demanda
 
-$$q^{∗} = F^{-1}\left(\frac{c_u}{c_o + c_u}\right)$$
+Como $D$ es aleatorio con distribución conocida, minimizamos el **costo esperado**:
 
-donde $F$ es la **función de distribución acumulada** de la demanda $D$.
+$$\min_q \; E_D[C(q, D)] = \min_q \; E_D\left[c_o \cdot \max(q - D, 0) + c_u \cdot \max(D - q, 0)\right]$$
 
-**La fracción $c_u / (c_o + c_u)$ se llama *critical ratio*** — es la probabilidad de que la demanda no exceda $q^{∗}$.
+Esto es optimización (módulo 07) pero el objetivo es un promedio sobre estados inciertos — exactamente la estructura de la sección 9.1.
 
-![Problema del newsvendor]({{ '/09_teoria_decision/images/08_newsvendor.png' | url }})
+### Paso 3: derivar y obtener la fórmula
 
-### ¿De dónde sale $F$?
+Para encontrar el $q$ que minimiza $E[C(q, D)]$, derivamos respecto a $q$ e igualamos a cero. La derivada del costo esperado es:
 
-De la **predicción** (mod 08). Si tienes un modelo que predice la distribución de demanda $P(D \mid X)$ dado features $X$ (día de la semana, clima, eventos), entonces $F$ es la CDF de esa distribución condicional.
+$$\frac{d}{dq} E[C(q, D)] = c_o \cdot P(D \leq q) - c_u \cdot P(D > q)$$
 
-**Conexión completa:**
-1. **Predicción** te da $P(D \mid X)$ → la distribución $F$
-2. **Decisión** usa $F$ para calcular $q^{∗}$
-3. **Optimización** minimiza el costo esperado
+**Intuición:** al aumentar $q$ en una unidad, con probabilidad $P(D \leq q)$ esa unidad sobra (costo $c_o$), y con probabilidad $P(D > q)$ esa unidad evita una falta (ahorro $c_u$).
 
-Si mejoras tu modelo predictivo (mejor $F$), reduces tu costo esperado. Pero solo vale la pena si la mejora en $F$ **cambia** la decisión $q^{∗}$.
+Igualando a cero:
+
+$$c_o \cdot P(D \leq q^{∗}) = c_u \cdot (1 - P(D \leq q^{∗}))$$
+
+Usando $F(q) = P(D \leq q)$ y despejando:
+
+$$c_o \cdot F(q^{∗}) = c_u - c_u \cdot F(q^{∗})$$
+
+$$F(q^{∗}) \cdot (c_o + c_u) = c_u$$
+
+$$F(q^{∗}) = \frac{c_u}{c_o + c_u}$$
+
+Invirtiendo la CDF:
+
+$$\boxed{q^{∗} = F^{-1}\!\left(\frac{c_u}{c_o + c_u}\right)}$$
+
+La fracción $c_u / (c_o + c_u)$ se llama **ratio crítico**. Es la probabilidad de que la demanda no exceda la cantidad óptima.
+
+![Derivación paso a paso]({{ '/09_teoria_decision/images/08b_newsvendor_derivation.png' | url }})
+
+### Ejemplo numérico
 
 :::example{title="Newsvendor con Normal"}
 Demanda $D \sim N(50, 15^2)$, costo exceso $c_o = 2$, costo escasez $c_u = 7$.
 
-Ratio crítico: $c_u / (c_o + c_u) = 7/9 \approx 0.778$
+**Paso 1:** Ratio crítico = $\frac{7}{2 + 7} = \frac{7}{9} \approx 0.778$
 
-$q^{∗} = F^{-1}(0.778) = 50 + 15 \times \Phi^{-1}(0.778) \approx 50 + 15 \times 0.765 \approx 61.5$
+**Paso 2:** Necesitamos $q^{∗}$ tal que $F(q^{∗}) = 0.778$, donde $F$ es la CDF de $N(50, 15^2)$.
 
-Ordena ~62 periódicos. Nota que $q^{∗} > E[D] = 50$ porque el costo de escasez es mayor que el de exceso.
+**Paso 3:** Usando la inversa de la normal: $q^{∗} = 50 + 15 \times \Phi^{-1}(0.778) \approx 50 + 15 \times 0.765 \approx 61.5$
+
+Ordena ~62 periódicos. Nota que $q^{∗} > E[D] = 50$ porque $c_u > c_o$ — es más caro quedarse corto que sobrar, así que ordenas de más como "seguro".
 :::
 
-:::exercise{title="Varía los costos"}
-¿Qué pasa con $q^{∗}$ si:
-1. $c_o = c_u$? (costos simétricos)
-2. $c_u \gg c_o$? (escasez es mucho peor)
-3. $c_o \gg c_u$? (exceso es mucho peor)
+**¿Y si $c_o = c_u$?** Ratio crítico = 0.5, y $q^{∗} = F^{-1}(0.5) = \text{mediana}(D)$. Con costos simétricos, ordenas la mediana.
 
-¿Cómo se relaciona con aversión al riesgo?
-:::
+**¿Y si $c_u \gg c_o$?** Ratio crítico → 1, y $q^{∗}$ crece: ordenas mucho para casi nunca quedarte corto.
+
+![Newsvendor: costo esperado vs cantidad]({{ '/09_teoria_decision/images/08_newsvendor.png' | url }})
+
+### ¿De dónde sale $F$?
+
+De la **predicción** (módulo 08). Si tienes un modelo que predice la distribución de demanda $P(D \mid X)$ dado features $X$ (día de la semana, clima, eventos), entonces $F$ es la CDF de esa distribución condicional.
+
+**Conexión completa:**
+1. **Predicción** te da $P(D \mid X)$ → la distribución $F$
+2. **Decisión** usa $F$ y la fórmula del ratio crítico para calcular $q^{∗}$
+3. Si mejoras la predicción (mejor $F$), reduces el costo esperado
 
 ---
 
-## Políticas
+## Políticas: la solución es una función, no un número
 
-En optimización determinista, la solución es un **número** $x^{∗}$. En optimización estocástica, la solución puede ser una **función** — una **política**:
+En optimización determinista (módulo 07), la solución es un número: $x^{∗} = 3.7$, listo. En optimización estocástica, la solución puede ser una **función** que dice *qué hacer dependiendo de lo que observes*.
 
-$$\pi: S \to A$$
+Esa función se llama **política**:
 
-que mapea cada estado observado a una acción.
+$$\pi: \text{Observación} \to \text{Acción}$$
 
-### ¿Por qué funciones en vez de números?
+### Ejemplo concreto: newsvendor con y sin información
 
-Porque podemos **observar información** antes de decidir. En el newsvendor:
-- Sin información: la política es un número fijo $q^{∗}$ (misma orden cada día)
-- Con features $X$: la política es $q^{∗}(X) = F^{-1}_{D \mid X}(c_u / (c_o + c_u))$ (ajusta según el contexto)
+**Sin información** (no sabes nada del contexto):
+- Tu política es un número fijo: $\pi = 62$ (ordenas 62 periódicos todos los días, sin importar nada)
+- Es la $q^{∗}$ que calculamos arriba
 
-| Tipo de solución | Cuándo | Ejemplo |
-|-----------------|--------|---------|
-| Acción fija $a^{∗}$ | No observas nada antes de decidir | Ordenar 62 periódicos siempre |
-| Política $\pi(x)$ | Observas features antes de decidir | Ordenar $\pi(\text{lunes, lluvia}) = 45$, $\pi(\text{viernes, sol}) = 70$ |
+**Con información** (observas el día de la semana y el clima):
+- Tu política es una *función* que adapta la orden al contexto:
 
-Las políticas son un concepto central en **procesos de decisión de Markov** (MDPs) y **aprendizaje por refuerzo** — módulos futuros.
+| Observación | Política $\pi(\text{obs})$ | Razón |
+|-------------|:---:|--------|
+| Lunes + lluvia | 45 | Poca gente en la calle |
+| Miércoles + nublado | 55 | Día promedio |
+| Viernes + sol | 70 | Mucha gente, buen clima |
+| Domingo + lluvia | 30 | Casi nadie sale |
+
+Cada fila usa la misma fórmula $q^{∗} = F^{-1}(c_u / (c_o + c_u))$, pero con una $F$ diferente — la distribución de demanda *condicional* a lo que observaste.
+
+### ¿Por qué importa la distinción?
+
+| | Solución fija $a^{∗}$ | Política $\pi(\text{obs})$ |
+|---|---|---|
+| **Qué es** | Un número | Una función |
+| **Cuándo** | No observas nada antes de decidir | Observas algo antes de decidir |
+| **Ejemplo** | "Siempre ordena 62" | "Si lunes ordena 45, si viernes ordena 70" |
+| **Calidad** | Buena en promedio | Mejor porque se adapta |
+
+La diferencia entre solución fija y política es exactamente la diferencia entre $\max_a E[U(a)]$ (una acción para todos los estados) y $E[\max_a U(a, s)]$ (adaptas la acción al estado) — la misma idea del VPI en la sección 9.3.
+
+Las políticas son el concepto central de los **procesos de decisión de Markov** (MDPs) y el **aprendizaje por refuerzo** (RL), donde el agente toma decisiones secuenciales y aprende su política por experiencia — módulos futuros del curso.
 
 ---
 
@@ -129,13 +172,17 @@ donde $w$ son los pesos del portafolio, $R_p = w^T R$ es el retorno del portafol
 - $\lambda \to \infty$: solo minimiza varianza (ignora retorno)
 - $\lambda$ intermedio: tradeoff
 
-La **frontera eficiente** es el conjunto de portafolios que no pueden mejorar en retorno sin empeorar en riesgo (ni viceversa). Es una curva de Pareto — exactamente el concepto de optimización multiobjetivo del mod 07.
+La **frontera eficiente** es el conjunto de portafolios que no pueden mejorar en retorno sin empeorar en riesgo (ni viceversa). Es una curva de Pareto — exactamente el concepto de optimización multiobjetivo del módulo 07.
 
 ### Value at Risk (VaR)
 
-$$\text{VaR}_\alpha = -Q_\alpha[R]$$
+El VaR responde: *"¿cuánto puedo perder en el peor caso razonable?"*
 
-El VaR al nivel $\alpha$ es la pérdida máxima que esperas con probabilidad $1 - \alpha$. Ejemplo: "Con 95% de confianza, no perderás más de &#36;10,000".
+$$\text{VaR}_{\alpha} = -Q_{\alpha}(R)$$
+
+donde $Q_{\alpha}(R)$ es el cuantil $\alpha$ de la distribución de retornos $R$. El VaR al nivel $\alpha$ es la pérdida máxima que esperas con probabilidad $1 - \alpha$.
+
+Ejemplo: si $\text{VaR}_{0.05} = 10{,}000$ pesos, significa "con 95% de confianza, no perderás más de 10,000 pesos".
 
 ### Optimización robusta
 
@@ -155,22 +202,26 @@ Esto es el **maximin** de la sección 9.3, pero formulado como problema de optim
 
 ## Monte Carlo: cuando no hay fórmulas cerradas
 
-¿Qué pasa cuando $E[f(x, \theta)]$ no tiene solución analítica? Usamos **aproximación por muestreo** (Sample Average Approximation, SAA):
+El newsvendor tuvo suerte: la derivada del costo esperado tenía forma cerrada y pudimos despejar $q^{∗}$ con álgebra. Pero en muchos problemas reales, $E[f(x, \theta)]$ no se puede calcular analíticamente (la integral no tiene solución cerrada, la distribución de $\theta$ es complicada, etc.).
+
+La idea es simple: **reemplaza el valor esperado por un promedio de muestras**.
 
 $$E_\theta[f(x, \theta)] \approx \frac{1}{N} \sum_{i=1}^{N} f(x, \theta_i), \quad \theta_i \sim P(\theta)$$
 
-El algoritmo:
-1. Genera $N$ muestras $\theta_1, \ldots, \theta_N$ de $P(\theta)$
-2. Para cada $x$ candidato, evalúa el promedio $\frac{1}{N} \sum_i f(x, \theta_i)$
-3. Minimiza este promedio (usando los algoritmos del mod 07)
+Esto se llama **Sample Average Approximation** (SAA). El procedimiento:
 
-Es la unión de Monte Carlo (mod 05) + optimización (mod 07).
+1. **Simula** $N$ escenarios $\theta_1, \ldots, \theta_N$ de la distribución $P(\theta)$
+2. **Evalúa** el costo promedio para cada decisión candidata $x$: el promedio $\frac{1}{N} \sum_i f(x, \theta_i)$
+3. **Optimiza** ese promedio usando los algoritmos del módulo 07 (gradiente, scipy, etc.)
 
-:::exercise{title="SAA para el newsvendor"}
-Si en vez de asumir $D \sim N(50, 15^2)$, solo tienes datos históricos $d_1, \ldots, d_{100}$:
-1. ¿Cómo usarías SAA para encontrar $q^{∗}$?
-2. ¿Qué tan grande debe ser $N$ para una buena aproximación?
-3. ¿Es esto equivalente a usar la CDF empírica en la fórmula cerrada?
+:::example{title="SAA para el newsvendor"}
+Si no sabes que la demanda es Normal pero tienes 100 datos históricos $d_1, \ldots, d_{100}$:
+
+1. Para cada $q$ candidato, calcula el costo en cada dato: $C(q, d_i) = 2 \cdot \max(q - d_i, 0) + 7 \cdot \max(d_i - q, 0)$
+2. Promedia: $\hat{E}[C(q)] = \frac{1}{100} \sum_{i=1}^{100} C(q, d_i)$
+3. Busca el $q$ que minimiza $\hat{E}[C(q)]$
+
+Esto es equivalente a usar la CDF empírica en la fórmula cerrada: $q^{∗} = \hat{F}^{-1}(c_u / (c_o + c_u))$, donde $\hat{F}$ es la distribución de tus datos históricos. Pero SAA funciona incluso cuando no hay fórmula cerrada.
 :::
 
 ---

@@ -55,7 +55,29 @@ O equivalentemente, usando la constante de normalización $\alpha$:
 
 $$P(Q \mid E = e) = \alpha \cdot P(Q, E = e)$$
 
-donde $\alpha$ hace que las probabilidades sumen 1.
+donde
+
+$$\alpha \;=\; \frac{1}{P(E=e)} \;=\; \frac{1}{\sum_{q} P(Q=q, E=e)}$$
+
+y sirve para **normalizar**.
+
+**¿Qué significa normalizar?**  
+Después de los pasos 2–3 solemos poder calcular \(P(Q=q, E=e)\) para cada valor posible \(q\) de \(Q\). Esos números son “scores” correctos **en proporción**, pero todavía no forman una distribución sobre \(Q\) porque no necesariamente suman 1.  
+**Normalizar** significa convertirlos en probabilidades válidas dividiendo entre la suma total (de modo que ahora sí sumen 1).
+
+**Ejemplo numérico (sencillo):** supón que \(Q\) es binaria (\(q\in\{\text{sí},\text{no}\}\)) y que calculaste:
+
+$$P(Q=\text{sí},E=e)=0.02,\qquad P(Q=\text{no},E=e)=0.08.$$
+
+Entonces la evidencia es:
+
+$$P(E=e)=0.02+0.08=0.10,$$
+
+la constante es \(\alpha = 1/0.10 = 10\), y el posterior queda:
+
+$$P(Q=\text{sí}\mid E=e)=10\cdot 0.02=0.2,\qquad P(Q=\text{no}\mid E=e)=10\cdot 0.08=0.8.$$
+
+Ahora sí: \(0.2+0.8=1\).
 
 ---
 

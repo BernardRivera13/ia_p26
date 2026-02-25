@@ -125,7 +125,7 @@ Esto es *explaining away*: una causa explica el efecto, reduciendo la probabilid
 
 ## d-Separación
 
-La **d-separación** (directed separation) generaliza las tres estructuras canónicas a grafos arbitrarios. Es un algoritmo para determinar si dos conjuntos de variables son condicionalmente independientes dado un tercer conjunto.
+La **d-separación** (directed separation) generaliza las tres estructuras canónicas a **grafos arbitrarios**. Es un criterio *gráfico* (solo depende del grafo, no de los números de las CPTs) para decidir si dos conjuntos de variables deberían ser condicionalmente independientes dado lo que observamos.
 
 ### Definición
 

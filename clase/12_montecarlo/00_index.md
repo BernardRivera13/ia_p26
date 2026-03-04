@@ -2,6 +2,14 @@
 title: "Métodos de Monte Carlo"
 ---
 
+:::homework{id="hw-montecarlo" title="Tarea Monte Carlo: notebooks y aplicación" due="2026-03-18" points="25"}
+Subir la evidencia en un pull request aquí: `01_fundamentos`, `02_reduccion_varianza` y uno de los notebooks de aplicaciones.
+:::
+
+:::exam{id="EX-07" title="Parcial de Monte Carlo" date="2026-03-18" points="10" duration="20 minutos"}
+Evaluación del módulo de Monte Carlo.
+:::
+
 # Métodos de Monte Carlo
 
 > *"The first ENIAC runs were made in late 1947. The idea was to test whether the calculation of neutron diffusion was feasible using Monte Carlo... It worked beyond our expectations."*

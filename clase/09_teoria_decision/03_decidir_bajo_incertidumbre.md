@@ -177,7 +177,9 @@ $$\text{VPI} = 9.2 - 6.4 = 2.8$$
 
 Para cualquier fuente de información $E$:
 
-$$\text{VoI}(E) = \underbrace{EU(\text{decide después de observar } E)}_{\text{primero observas, luego decides}} - \underbrace{EU(\text{decide sin } E)}_{\text{decides a ciegas}}$$
+$$\text{VoI}(E) = EU(\text{decide después de observar } E) - EU(\text{decide sin } E)$$
+
+Es decir: primero observas y luego decides (primer término) versus decides a ciegas (segundo término).
 
 **Propiedad fundamental:** $\text{VoI}(E) \geq 0$. La información nunca tiene valor negativo — en el peor caso, la ignoras y decides igual que antes.
 
@@ -185,7 +187,9 @@ $$\text{VoI}(E) = \underbrace{EU(\text{decide después de observar } E)}_{\text{
 
 El VPI es el caso extremo: sabes *exactamente* qué estado va a ocurrir.
 
-$$\text{VPI} = \underbrace{\sum_{s} P(s) \cdot \max_a U(a, s)}_{\text{adaptas la acción a cada estado}} - \underbrace{\max_a \sum_s P(s) \cdot U(a, s)}_{\text{una sola acción para todos}}$$
+$$\text{VPI} = \sum_{s} P(s) \cdot \max_{a} U(a, s) \;-\; \max_{a} \sum_{s} P(s) \cdot U(a, s)$$
+
+El primer término es "adaptas la acción a cada estado" (el $\max$ va *adentro* de la suma). El segundo es "una sola acción para todos" (el $\max$ va *afuera*).
 
 **Intuición matemática:** El primer término pone el $\max$ *adentro* de la suma (eliges la mejor acción *para cada estado*). El segundo pone el $\max$ *afuera* (eliges una acción fija y promedias). Como $\max$ adentro $\geq$ $\max$ afuera (siempre es mejor adaptarse que comprometerse), el VPI es siempre $\geq 0$.
 

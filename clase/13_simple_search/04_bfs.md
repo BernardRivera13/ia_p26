@@ -176,23 +176,42 @@ Nota: `popleft()` de `deque` es $O(1)$. Si usáramos una lista Python ordinaria,
 
 ## 7. Complejidad de tiempo y espacio
 
-### Tiempo: $O(V + E)$
+### Tiempo: $O(b^d)$
 
-Cada nodo entra a la frontera **a lo sumo una vez** (gracias al conjunto explorado y la verificación de frontera). Cada vez que procesamos un nodo, revisamos todas sus aristas. El total de trabajo es proporcional a nodos + aristas: $O(V + E)$.
-
-En términos del **factor de ramificación** $b$ (número promedio de vecinos) y la **profundidad de la solución** $d$:
+Cada nodo entra a la frontera **a lo sumo una vez** (gracias al conjunto explorado y la verificación de frontera). Cada vez que procesamos un nodo, revisamos todas sus aristas. En términos del **factor de ramificación** $b$ (número promedio de vecinos) y la **profundidad de la solución** $d$:
 
 $$T_{\text{BFS}} = O(b^d)$$
 
-Esto es porque en el peor caso exploramos todos los nodos hasta la profundidad $d$, y cada nivel tiene $b$ veces más nodos que el anterior.
+Esto es porque BFS explora nivel a nivel: el nivel 0 tiene 1 nodo, el nivel 1 tiene $b$, el nivel 2 tiene $b^2$, ..., el nivel $d$ tiene $b^d$. El total es $1 + b + b^2 + \cdots + b^d = O(b^d)$ — dominado por el último nivel.
 
-### Espacio: $O(V)$ o $O(b^d)$
+### Espacio: $O(b^d)$ — el verdadero cuello de botella de BFS
 
-La cola puede contener en el peor caso **todos los nodos del último nivel explorado**. Si el árbol tiene factor de ramificación $b$ y la meta está a profundidad $d$, el último nivel tiene $b^d$ nodos.
+Este es el problema serio de BFS, y vale la pena entenderlo bien porque motivará directamente el diseño de IDDFS.
+
+**¿Por qué la cola crece hasta $O(b^d)$?** BFS nunca descarta los nodos de la cola hasta procesarlos. Para avanzar del nivel $k$ al nivel $k+1$, necesita tener **todos los nodos de nivel $k$ simultáneamente en la cola** — de lo contrario, no podría saber que ya terminó ese nivel y podría emitir vecinos fuera de orden.
+
+Al final del nivel $k$, la cola contiene todos los nodos del nivel $k$ (esperando ser procesados) más los del nivel $k+1$ ya descubiertos. En el peor momento — al terminar el nivel $d-1$ — la cola tiene:
+
+| Nivel | Nodos en la cola *simultáneamente* |
+|-------|-----------------------------------|
+| 0 → 1 | $b$ nodos (hijos de la raíz) |
+| 1 → 2 | $b^2$ nodos |
+| 2 → 3 | $b^3$ nodos |
+| $d-1$ → $d$ | $b^d$ nodos ← **pico de memoria** |
 
 $$S_{\text{BFS}} = O(b^d)$$
 
-Este es el costo más alto de BFS. Para $b = 10$ y $d = 10$: la frontera puede contener hasta $10^{10} = 10{,}000{,}000{,}000$ nodos. En la práctica, el espacio es la limitación principal de BFS en problemas grandes.
+Esto no es un detalle menor. Con $b = 10$ y $d = 6$ (una búsqueda moderadamente profunda):
+
+| $d$ | Nodos en la cola | Memoria aprox. (32 bytes/nodo) |
+|-----|-----------------|-------------------------------|
+| 2 | $100$ | $3\ \text{KB}$ |
+| 4 | $10{,}000$ | $320\ \text{KB}$ |
+| 6 | $1{,}000{,}000$ | $32\ \text{MB}$ |
+| 8 | $100{,}000{,}000$ | $3.2\ \text{GB}$ |
+| 10 | $10{,}000{,}000{,}000$ | $320\ \text{GB}$ |
+
+A profundidad 8, BFS ya requiere gigabytes. A profundidad 10, necesita más RAM de la que existe en la mayoría de los servidores. **El espacio es la razón por la que BFS no escala** — y es exactamente lo que IDDFS resolverá.
 
 ---
 
@@ -251,9 +270,11 @@ En mapas de cuadrículas (videojuegos, robótica), BFS da el camino mínimo en n
 |---|---|---|
 | Frontera | Cola (FIFO) | Nodo más antiguo primero |
 | Tiempo | $O(b^d)$ | Explora todos los nodos hasta prof. $d$ |
-| Espacio | $O(b^d)$ | La cola puede contener todo un nivel |
+| Espacio | $O(b^d)$ | La cola debe guardar todo el nivel $d$ simultáneamente |
 | Completo | Sí | Explora exhaustivamente nivel a nivel |
 | Óptimo | Sí (sin pesos) | Expande nodos en orden no-decreciente de distancia |
+
+Recordatorio de notación: $b$ = factor de ramificación (vecinos por nodo), $d$ = profundidad de la solución, $m$ = profundidad máxima del grafo. Definidos en [03 — Algoritmo genérico →](03_busqueda_generica.md).
 
 ---
 

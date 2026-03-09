@@ -246,7 +246,7 @@ Comparación directa con `ColaDeFrontera`:
 
 ## 8. Complejidad de tiempo y espacio
 
-### Tiempo: $O(V + E)$ o $O(b^m)$
+### Tiempo: $O(b^m)$
 
 Al igual que BFS, cada nodo entra y sale de la frontera a lo sumo una vez: $O(V + E)$.
 
@@ -254,20 +254,42 @@ En términos de $b$ y $m$ (profundidad máxima del grafo):
 
 $$T_{\text{DFS}} = O(b^m)$$
 
-Nota importante: si $m \gg d$ (la profundidad máxima es mucho mayor que la profundidad de la solución), DFS puede ser mucho más lento que BFS en el peor caso.
+Nota importante: si $m \gg d$ (la profundidad máxima es mucho mayor que la profundidad de la solución), DFS puede ser mucho más lento que BFS en el peor caso. BFS garantiza no explorar más allá del nivel $d$; DFS puede bajar hasta el fondo del grafo antes de encontrar la solución.
 
-### Espacio: $O(bm)$ — la gran ventaja de DFS
+### Espacio: $O(bm)$ — la gran ventaja de DFS frente a BFS
 
-La pila de DFS nunca necesita contener más de **un camino desde el inicio hasta el nodo actual** más los hermanos de cada nodo en el camino. Esto es proporcional a la profundidad máxima:
+Esta es la diferencia más importante entre DFS y BFS, y vale la pena entenderla con precisión.
+
+**¿Por qué la pila de DFS solo necesita $O(bm)$?** En cualquier momento, la pila contiene únicamente:
+
+1. **El camino activo**: los nodos desde la raíz hasta el nodo que se está expandiendo ahora — como máximo $m$ nodos (uno por nivel).
+2. **Los hermanos pendientes de cada nodo en el camino**: los vecinos que aún no se han explorado. En cada nivel hay como máximo $b-1$ hermanos pendientes.
+
+En total: $(b-1) \times m + 1 \approx b \times m$ nodos. En cualquier instante, la pila tiene esta forma:
+
+```
+Pila DFS en un grafo con b=3, m=4:
+  [raíz, hermano1_de_raíz, hermano2_de_raíz,    ← nivel 0: hasta b-1 hermanos
+   hijo_activo, hermano1, hermano2,               ← nivel 1: hasta b-1 hermanos
+   nieto_activo, hermano1,                        ← nivel 2: hasta b-1 hermanos
+   bisnieto_activo]                               ← nivel 3: nodo actual, sin hermanos aún
+```
+
+El punto clave: DFS **nunca** necesita guardar todos los nodos del mismo nivel. Cuando baja al nivel $k+1$, los nodos del nivel $k$ que no son el padre activo ya no están en la pila.
 
 $$S_{\text{DFS}} = O(bm)$$
 
-Compara con $O(b^d)$ de BFS. Para $b = 10$, $d = m = 10$:
+**Comparación directa con BFS** para $b = 10$, $d = m$:
 
-- BFS: $10^{10} = 10{,}000{,}000{,}000$ nodos en memoria.
-- DFS: $10 \times 10 = 100$ nodos en memoria.
+| $d$ | BFS: cola en pico | DFS: pila máxima | Factor de diferencia |
+|-----|------------------|-----------------|---------------------|
+| 2 | $100$ nodos | $20$ nodos | $5\times$ |
+| 4 | $10{,}000$ nodos | $40$ nodos | $250\times$ |
+| 6 | $1{,}000{,}000$ nodos | $60$ nodos | $16{,}666\times$ |
+| 8 | $10^8$ nodos | $80$ nodos | $1{,}250{,}000\times$ |
+| 10 | $10^{10}$ nodos | $100$ nodos | $100{,}000{,}000\times$ |
 
-DFS usa **órdenes de magnitud menos memoria** que BFS. Esta es su ventaja principal.
+DFS usa **órdenes de magnitud menos memoria** que BFS. A profundidad 10, BFS necesita ~320 GB de RAM; DFS necesita apenas unos kilobytes. **Esta es la ventaja principal de DFS** — y la razón de ser de IDDFS, que tomará exactamente esta propiedad y la combinará con las garantías de BFS.
 
 ---
 
@@ -451,10 +473,12 @@ DFS puede detectar ciclos: si durante la exploración encontramos un nodo que ya
 | Propiedad | Valor | Justificación |
 |---|---|---|
 | Frontera | Pila (LIFO) | Nodo más reciente primero |
-| Tiempo | $O(b^m)$ | Puede explorar toda la profundidad $m$ |
-| Espacio | $O(bm)$ | Solo un camino + hermanos en memoria |
+| Tiempo | $O(b^m)$ | Puede bajar hasta la profundidad máxima $m$ antes de retroceder |
+| Espacio | $O(bm)$ | Un camino activo ($m$ nodos) + hermanos pendientes (hasta $b-1$ por nivel) |
 | Completo | Sí (finito + explorado) | No en grafos infinitos |
 | Óptimo | **No** | Puede encontrar camino largo antes del corto |
+
+Recordatorio de notación: $b$ = factor de ramificación (vecinos por nodo), $d$ = profundidad de la solución, $m$ = profundidad máxima del grafo ($m \geq d$, puede ser $\gg d$). Definidos en [03 — Algoritmo genérico →](03_busqueda_generica.md).
 
 ---
 

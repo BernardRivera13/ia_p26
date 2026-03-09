@@ -304,4 +304,25 @@ En los próximos capítulos veremos exactamente cómo se implementa cada fronter
 
 ---
 
+## Notación de complejidad — referencia para todo el módulo
+
+Los capítulos siguientes analizan la complejidad de BFS, DFS e IDDFS usando tres parámetros. Se definen aquí una vez y se usan de forma consistente en todo el módulo:
+
+| Símbolo | Nombre | Significado | Ejemplo |
+|:-------:|--------|-------------|---------|
+| $b$ | **Factor de ramificación** (*branching factor*) | Número promedio de vecinos de cada nodo — cuántas opciones hay en cada paso | En un laberinto de cuadrícula: $b = 4$ (arriba, abajo, izquierda, derecha). En ajedrez: $b \approx 35$. |
+| $d$ | **Profundidad de la solución** (*depth of solution*) | Número de aristas en el camino más corto desde el inicio hasta la meta | Si la solución es `A→B→D→F`, entonces $d = 3$. |
+| $m$ | **Profundidad máxima del grafo** (*maximum depth*) | La rama más larga posible del grafo. Puede ser mucho mayor que $d$ o incluso infinito. | Un grafo con ciclos sin conjunto explorado tendría $m = \infty$. |
+
+**¿Por qué importa la diferencia entre $d$ y $m$?**
+
+- $d$ es la profundidad donde *vive la solución* — cuántos pasos mínimos se necesitan.
+- $m$ es lo más profundo que puede ir el algoritmo *en el peor caso*.
+- BFS e IDDFS garantizan explorar solo hasta $d$ — nunca más profundo de lo necesario.
+- DFS puede bajar hasta $m$, que puede ser arbitrariamente mayor que $d$.
+
+Esta diferencia explica directamente por qué el espacio de BFS es $O(b^d)$ (controlado por la solución) mientras que el tiempo de DFS puede ser $O(b^m)$ (controlado por la profundidad máxima).
+
+---
+
 **Siguiente:** [Búsqueda en amplitud (BFS) →](04_bfs.md)

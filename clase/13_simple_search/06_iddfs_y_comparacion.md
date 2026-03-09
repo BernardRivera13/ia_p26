@@ -307,38 +307,103 @@ Para $b = 10$, $d = 10$: la pila nunca supera $10 \times 10 = 100$ nodos. La dif
 
 ## 7. Complejidad de tiempo y espacio
 
-### Tiempo: $O(b^d)$ — igual que BFS
+IDDFS tiene dos partes que analizar por separado: el tiempo (que sí se acumula en cada pasada) y el espacio (que sorprendentemente *no* se acumula). Entender la diferencia entre los dos es la clave para comprender IDDFS.
 
-A primera vista parece que IDDFS hace mucho trabajo extra: en la pasada con límite $d$, re-explora todos los nodos de las pasadas anteriores. Hagamos las cuentas para $b = 3$ y solución a profundidad $d = 4$:
+### Tiempo: $O(b^d)$ en total, sumando todas las pasadas
 
-| Pasada | Nodos en esa pasada | Acumulado |
-|--------|--------------------|-----------|
+La pregunta clave es: **¿cuántos nodos expande IDDFS en total, contando todas las pasadas?**
+
+Cada pasada con límite $k$ expande todos los nodos hasta profundidad $k$:
+
+$$\text{Nodos en pasada } k = \sum_{j=0}^{k} b^j = 1 + b + b^2 + \cdots + b^k$$
+
+Para llegar a una solución a profundidad $d$, IDDFS ejecuta pasadas $0, 1, 2, \ldots, d$. El total acumulado es la **suma de todas las pasadas**:
+
+$$T_{\text{total}} = \sum_{k=0}^{d} \underbrace{\sum_{j=0}^{k} b^j}_{\text{pasada } k}$$
+
+Esto no es lo mismo que la complejidad de una sola pasada — hay que sumar todas. Hagamos las cuentas explícitas para $b = 3$, solución a $d = 4$:
+
+| Pasada $k$ | Nodos expandidos en esa pasada | Acumulado total |
+|:----------:|-------------------------------|:---------------:|
 | 0 | $1$ | $1$ |
 | 1 | $1 + 3 = 4$ | $5$ |
 | 2 | $1 + 3 + 9 = 13$ | $18$ |
 | 3 | $1 + 3 + 9 + 27 = 40$ | $58$ |
-| 4 | $1 + 3 + 9 + 27 + 81 = 121$ | $179$ |
+| 4 | $1 + 3 + 9 + 27 + 81 = 121$ | **179** |
 
-BFS habría expandido exactamente $1 + 3 + 9 + 27 + 81 = 121$ nodos. IDDFS expandió $179$ — solo un **48% más**.
+El total es 179. BFS habría expandido solo 121. IDDFS expandió un **48% más**.
 
-¿Por qué el sobrecosto es tan pequeño? Porque la última pasada domina el total. Los nodos del nivel $d$ son $b^d$; todos los niveles anteriores juntos suman $b^d/(b-1)$, que es una fracción constante. En general:
+**¿Por qué ese sobrecosto es tan pequeño?** Porque **la última pasada domina**. Miremos cuánto pesa cada pasada en el total:
 
-$$N_{\text{IDDFS}} = \sum_{i=0}^{d} \sum_{j=0}^{i} b^j \approx \frac{b}{b-1} \cdot b^d = O(b^d)$$
+| Pasada | Nodos de esa pasada | % del total |
+|--------|---------------------|:-----------:|
+| 0 | 1 | 0.6% |
+| 1 | 4 | 2.2% |
+| 2 | 13 | 7.3% |
+| 3 | 40 | 22.3% |
+| 4 | **121** | **67.6%** |
 
-**La complejidad asintótica de tiempo de IDDFS es idéntica a la de BFS.**
+La pasada final representa el 68% del trabajo total. Las 4 pasadas anteriores juntas solo suman el 32%. ¿Por qué? Porque la pasada $d$ tiene $b^d$ nodos solo en el nivel más profundo, y eso solo ya supera en tamaño a TODAS las pasadas anteriores combinadas.
 
-### Espacio: $O(bd)$ — mucho mejor que BFS
+**En general:** la pasada $k$ tiene aproximadamente $b^k$ nodos (el nivel más profundo). La suma de todas las pasadas hasta $d-1$ es comparable a $b^{d-1} + b^{d-2} + \cdots \approx b^{d-1} \cdot \frac{b}{b-1}$, que es una **fracción constante** de $b^d$. Formalmente:
 
-La pila de IDDFS en cualquier momento contiene a lo sumo el camino desde la raíz hasta el nodo actual, más los hermanos pendientes de cada nivel. Eso es como máximo $b$ nodos por nivel, durante $d$ niveles:
+$$T_{\text{IDDFS}} = \sum_{k=0}^{d} \sum_{j=0}^{k} b^j = \sum_{k=0}^{d} \frac{b^{k+1}-1}{b-1} \approx \frac{b}{(b-1)^2} \cdot b^d = O(b^d)$$
+
+**La complejidad total de IDDFS — sumando todas las pasadas — es $O(b^d)$, igual que BFS.** El sobrecosto del trabajo redundante es una constante multiplicativa, no un cambio de orden asintótico.
+
+:::example{title="¿El sobrecosto crece con d?"}
+No — el porcentaje de sobrecosto converge a una constante que depende solo de $b$:
+
+$$\text{Sobrecosto} = \frac{T_{\text{IDDFS}}}{T_{\text{BFS}}} \approx \frac{b}{b-1}$$
+
+Para $b=2$: factor $\approx 2.0$ (doble de trabajo).
+Para $b=3$: factor $\approx 1.5$ (50% extra).
+Para $b=10$: factor $\approx 1.11$ (solo 11% extra).
+
+Cuanto mayor es el factor de ramificación, menor es el sobrecosto relativo. Para los problemas grandes donde IDDFS es más útil (muchos vecinos por nodo), el precio del trabajo redundante es insignificante.
+:::
+
+### Espacio: $O(bd)$ — y se mantiene aunque hagamos múltiples pasadas
+
+Aquí está la parte más sorprendente de IDDFS: aunque hace $d+1$ pasadas y en cada una re-explora los nodos de las anteriores, **el uso de memoria en pico nunca supera $O(bd)$**.
+
+¿Por qué? La clave es entender qué pasa con la memoria entre pasadas:
+
+**Dentro de una pasada:** la pila de IDDFS en cualquier momento contiene solo el camino activo desde la raíz hasta el nodo actual, más los hermanos pendientes de cada nivel — exactamente como DFS. Con límite $k$, la pila tiene como máximo $b \times k$ nodos.
+
+**Entre pasadas:** cuando una pasada termina (sin encontrar la meta), la pila queda **completamente vacía**. No se guarda nada de la pasada anterior. La pasada $k+1$ empieza desde cero — con la pila vacía — igual que si fuera la primera vez.
+
+```
+Memoria a lo largo de IDDFS:
+
+Pasada 0:  pila sube hasta b×0 = 0... vacía al terminar
+Pasada 1:  pila sube hasta b×1 nodos... vacía al terminar
+Pasada 2:  pila sube hasta b×2 nodos... vacía al terminar
+...
+Pasada d:  pila sube hasta b×d nodos... ← PICO MÁXIMO → solución encontrada, termina
+```
+
+El **pico de memoria** ocurre en la pasada final (límite $= d$) cuando la pila está más llena:
 
 $$S_{\text{IDDFS}} = O(bd)$$
 
-Compara con $O(b^d)$ de BFS. La diferencia en la práctica es enorme: para $b = 10$, $d = 10$:
+**No importa cuántas pasadas hagamos — el pico de memoria es siempre el de la última pasada.** Las pasadas anteriores usan menos memoria (pila con límite menor) y liberan toda su memoria antes de empezar la siguiente.
 
-- **BFS**: hasta $10^{10}$ nodos en la frontera.
-- **IDDFS**: hasta $10 \times 10 = 100$ nodos en la pila.
+Comparación con BFS y DFS para $b = 10$, $d = m$:
+
+| $d$ | BFS (cola en pico) | DFS (pila máxima) | IDDFS (pila en pico) |
+|-----|:-----------------:|:-----------------:|:--------------------:|
+| 2 | $100$ | $20$ | $20$ |
+| 4 | $10{,}000$ | $40$ | $40$ |
+| 6 | $1{,}000{,}000$ | $60$ | $60$ |
+| 8 | $10^8$ | $80$ | $80$ |
+| 10 | $10^{10}$ | $100$ | $100$ |
+
+IDDFS usa la misma memoria que DFS — no la acumula entre pasadas. A profundidad 10: BFS necesita ~320 GB, IDDFS necesita la misma RAM que DFS: apenas unos kilobytes.
 
 ![Comparación de complejidad de tiempo y espacio]({{ '/13_simple_search/images/13_complexity_comparison.png' | url }})
+
+El gráfico confirma lo que acabamos de derivar: tiempo BFS ≈ IDDFS (misma curva exponencial), pero espacio BFS $\gg$ IDDFS (BFS exponencial, IDDFS lineal).
 
 ---
 
@@ -385,10 +450,12 @@ En dispositivos embebidos (microcontroladores, robots con memoria restringida), 
 | Propiedad | Valor | Justificación |
 |---|---|---|
 | Frontera | Pila con límite (LIFO + poda) | DFS que no supera profundidad $d$ |
-| Tiempo | $O(b^d)$ | Mismo orden que BFS — el sobrecosto es una constante |
-| Espacio | $O(bd)$ | Solo un camino raíz→nodo en memoria |
+| Tiempo | $O(b^d)$ total (sumando todas las pasadas) | Última pasada domina; sobrecosto constante $\approx b/(b-1)$ |
+| Espacio | $O(bd)$ en pico (igual que una sola pasada DFS) | Memoria liberada entre pasadas; nunca se acumula |
 | Completo | Sí | Prueba todos los límites hasta $d^{∗}$ |
 | Óptimo | Sí (sin pesos) | Nunca termina antes de agotar profundidad $d-1$ |
+
+Recordatorio de notación: $b$ = factor de ramificación (vecinos por nodo), $d$ = profundidad de la solución (aristas del camino más corto), $m$ = profundidad máxima del grafo. Definidos en [03 — Algoritmo genérico →](03_busqueda_generica.md).
 
 ---
 
@@ -404,7 +471,7 @@ En dispositivos embebidos (microcontroladores, robots con memoria restringida), 
 | **Re-expande nodos** | No | No | Sí (constante por pasada) |
 | **Implementación** | `popleft()` | `pop()` | bucle + `pop()` con poda |
 
-Donde: $b$ = factor de ramificación, $d$ = profundidad de la solución, $m$ = profundidad máxima del grafo.
+Donde: $b$ = factor de ramificación (vecinos por nodo), $d$ = profundidad de la solución (aristas en el camino más corto a la meta), $m$ = profundidad máxima del grafo ($m \geq d$). El tiempo de IDDFS es el **total acumulado de todas las pasadas** — no el de una sola pasada con límite $d$.
 
 ---
 

@@ -740,7 +740,101 @@ def plot_iddfs_levels() -> None:
 
 
 # ---------------------------------------------------------------------------
-# 13. Complexity comparison chart
+# 13. BFS vs DFS vs IDDFS discovery order comparison
+# ---------------------------------------------------------------------------
+def plot_bfs_dfs_iddfs_comparison() -> None:
+    """Three-panel comparison: same 6-node graph, discovery order for each algorithm."""
+    pos = _DEMO_POS
+    edges = _DEMO_EDGES_UNDIRECTED
+
+    # BFS discovery order from A (FIFO, alphabetical neighbors)
+    bfs_order  = {'A': 1, 'B': 2, 'C': 3, 'D': 4, 'E': 5, 'F': 6}
+    bfs_tree   = {('A','B'), ('A','C'), ('B','D'), ('B','E'), ('D','F')}
+
+    # DFS discovery order from A (LIFO, alphabetical → B explored before C)
+    dfs_order  = {'A': 1, 'B': 2, 'D': 3, 'F': 4, 'E': 5, 'C': 6}
+    dfs_tree   = {('A','B'), ('B','D'), ('D','F'), ('B','E'), ('A','C')}
+
+    # IDDFS: final pass (limit=3) reaches A→B→D→F then stops at goal.
+    # Show only the nodes reached in the winning pass.  C and E were explored
+    # in earlier passes but not reached again before F was found.
+    iddfs_order = {'A': 1, 'B': 2, 'D': 3, 'F': 4, 'E': None, 'C': None}
+    iddfs_tree  = {('A','B'), ('B','D'), ('D','F')}
+    # Total visits across all passes (limit 0,1,2,3):
+    #   A:4  B:3  C:2  D:2  E:1  F:1
+    iddfs_visits = {'A': 4, 'B': 3, 'C': 2, 'D': 2, 'E': 1, 'F': 1}
+
+    fig, axes = plt.subplots(1, 3, figsize=(16, 5))
+    fig.suptitle("Árbol de búsqueda: BFS vs DFS vs IDDFS sobre el mismo grafo\n"
+                 "Números = orden de descubrimiento  |  ×N = veces que IDDFS visitó el nodo",
+                 fontsize=12, fontweight="bold")
+
+    configs = [
+        (axes[0], bfs_tree,   bfs_order,   None,
+         "BFS — orden de descubrimiento\n(nivel a nivel, FIFO)"),
+        (axes[1], dfs_tree,   dfs_order,   None,
+         "DFS — orden de descubrimiento\n(primero en profundidad, LIFO)"),
+        (axes[2], iddfs_tree, iddfs_order, iddfs_visits,
+         "IDDFS — pasada final (límite=3)\n(×N = total de visitas a través de todas las pasadas)"),
+    ]
+
+    for ax, tree_edges, order, visits, title in configs:
+        # Draw all edges (tree edges solid+blue, non-tree dashed+light)
+        for u, v in edges:
+            x0, y0 = pos[u]; x1, y1 = pos[v]
+            is_tree = (u, v) in tree_edges or (v, u) in tree_edges
+            ax.plot([x0, x1], [y0, y1],
+                    color=COLORS["blue"] if is_tree else COLORS["light"],
+                    lw=2.5 if is_tree else 1.0, zorder=1,
+                    linestyle="-" if is_tree else "--")
+
+        # Draw nodes
+        for n in pos:
+            x, y = pos[n]
+            num = order[n]
+            if n == 'F':       # goal
+                color = COLORS["green"]
+            elif num is None:  # IDDFS: reached in earlier pass, not final
+                color = COLORS["purple"]
+            else:
+                color = COLORS["blue"]
+
+            circle = plt.Circle((x, y), 0.22, color=color, zorder=3)
+            ax.add_patch(circle)
+            ax.text(x, y, n, ha="center", va="center",
+                    fontsize=10, fontweight="bold", color="white", zorder=4)
+
+            # Discovery order badge (top-right)
+            badge_label = str(num) if num is not None else "—"
+            ax.text(x + 0.28, y + 0.28, badge_label,
+                    ha="center", va="center", fontsize=9,
+                    color=COLORS["orange"], fontweight="bold", zorder=5)
+
+            # IDDFS-only: visit count badge (bottom-right)
+            if visits is not None:
+                ax.text(x + 0.28, y - 0.28, f"×{visits[n]}",
+                        ha="center", va="center", fontsize=8,
+                        color=COLORS["red"], fontweight="bold", zorder=5)
+
+        ax.set_xlim(-0.5, 3.7); ax.set_ylim(-0.5, 2.6)
+        ax.set_aspect("equal"); ax.axis("off")
+        ax.set_title(title, fontsize=10, fontweight="bold", pad=6)
+
+    # Shared legend
+    from matplotlib.patches import Patch
+    legend_els = [
+        Patch(facecolor=COLORS["blue"],   label="Nodo explorado"),
+        Patch(facecolor=COLORS["green"],  label="Meta (F)"),
+        Patch(facecolor=COLORS["purple"], label="IDDFS: solo en pasadas anteriores"),
+    ]
+    fig.legend(handles=legend_els, loc="lower center", ncol=3,
+               fontsize=10, frameon=True, bbox_to_anchor=(0.5, -0.04))
+    fig.tight_layout()
+    _save(fig, "14_bfs_dfs_iddfs_comparison.png")
+
+
+# ---------------------------------------------------------------------------
+# 15. Complexity comparison chart
 # ---------------------------------------------------------------------------
 def plot_complexity_comparison() -> None:
     b = 3  # branching factor
@@ -804,6 +898,7 @@ def main() -> None:
     plot_dfs_step_by_step()
     plot_dfs_vs_bfs_tree()
     plot_iddfs_levels()
+    plot_bfs_dfs_iddfs_comparison()
     plot_complexity_comparison()
     print(f"\n✓ {len(list(IMAGES_DIR.glob('*.png')))} imágenes en {IMAGES_DIR}")
 

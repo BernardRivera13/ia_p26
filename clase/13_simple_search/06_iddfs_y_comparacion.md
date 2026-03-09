@@ -42,6 +42,18 @@ En cada pasada:
 
 La clave está en el paso 2: el límite de profundidad convierte a DFS en un explorador exhaustivo dentro de un radio fijo. Cuando $d$ iguala la profundidad de la solución, DFS la encontrará — y lo hará recorriendo exactamente los mismos nodos que hubiera explorado BFS.
 
+:::example{title="¿Puedo empezar con d=3 en vez de d=0?"}
+Sí, si tienes una **cota inferior** probada para la profundidad de la solución. El riesgo es este: si empiezas con $d = 3$ y la solución real estaba a profundidad 2, nunca la encontrarás — habrás saltado por encima sin buscarlo.
+
+Lo que sí puedes hacer de forma segura:
+
+- **Cota inferior conocida**: si el problema garantiza que la solución necesita al menos $k$ pasos (por ejemplo, en un puzzle de cuadrículas, la distancia Manhattan desde el inicio hasta la meta da un mínimo de movimientos), entonces puedes empezar con $d = k$ sin riesgo de saltarte la solución óptima.
+
+- **Cota inferior heurística**: si tienes una función heurística *admisible* $h(s_0)$ (que nunca sobrestima el costo real), puedes empezar con $d = h(s_0)$. Esto es exactamente lo que hace **IDA\***, la versión informada de IDDFS.
+
+Si no tienes ninguna cota inferior, debes empezar en $d = 0$. Saltar límites sin garantías equivale a usar DFS sin beneficios — podrías perderte la solución más corta.
+:::
+
 ---
 
 ## 3. Pseudocódigo
@@ -396,7 +408,33 @@ Donde: $b$ = factor de ramificación, $d$ = profundidad de la solución, $m$ = p
 
 ---
 
-## 12. ¿Cuándo usar cada algoritmo?
+## 12. Comparación directa: BFS vs DFS vs IDDFS en el mismo grafo
+
+La diferencia de comportamiento entre los tres algoritmos queda clara comparando los árboles de búsqueda que genera cada uno sobre el mismo grafo de 6 nodos.
+
+![Comparación directa BFS vs DFS vs IDDFS]({{ '/13_simple_search/images/14_bfs_dfs_iddfs_comparison.png' | url }})
+
+Los números naranjas indican el **orden de descubrimiento** de cada nodo. Los números rojos (×N) en el panel de IDDFS indican **cuántas veces visitó ese nodo en total** a través de todas las pasadas.
+
+- **BFS** descubre A(1), B(2), C(3), D(4), E(5), F(6) — **nivel a nivel**, de izquierda a derecha. Nunca llega a un nivel siguiente hasta haber terminado el anterior. F es el último nodo en ser descubierto porque está más lejos.
+
+- **DFS** descubre A(1), B(2), D(3), F(4), E(5), C(6) — se **hunde por la primera rama** hasta encontrar F, luego hace backtrack y explora E y C. Encuentra F en el paso 4, antes que BFS.
+
+- **IDDFS (pasada final, límite=3)** descubre A(1), B(2), D(3), F(4) y detiene — siguió exactamente el mismo camino que DFS para llegar a F. Los nodos E (morado) y C (morado) no fueron alcanzados en la pasada final: aparecen con "—" en el orden de descubrimiento porque IDDFS ya terminó al encontrar F. Sin embargo, el badge rojo muestra que IDDFS visitó E una vez (en la pasada con límite=2) y C dos veces (en las pasadas con límite=1 y límite=2).
+
+### Lo que la imagen revela
+
+Tres observaciones clave:
+
+1. **IDDFS en la pasada final se comporta exactamente como DFS** — mismo árbol de búsqueda, mismo camino hacia F, mismo orden de expansión. La diferencia no está en cómo se mueve, sino en que las pasadas anteriores garantizaron que no existe una solución más corta.
+
+2. **BFS tiene árbol más ancho, IDDFS/DFS tienen árbol más profundo** — BFS genera árbol con aristas horizontales (A→B, A→C antes de bajar), DFS e IDDFS van en vertical (A→B→D→F primero).
+
+3. **El costo del trabajo redundante de IDDFS es visible**: A fue visitado 4 veces, B 3 veces, C 2 veces — pero F solo 1 vez. El trabajo extra está concentrado en los nodos cercanos a la raíz, no en los profundos donde vive la solución.
+
+---
+
+## 14. ¿Cuándo usar cada algoritmo?
 
 La elección depende de dos preguntas: *¿necesito el camino más corto?* y *¿tengo suficiente memoria?*
 
@@ -432,7 +470,7 @@ La elección depende de dos preguntas: *¿necesito el camino más corto?* y *¿t
 
 ---
 
-## 13. Preview: búsqueda informada
+## 15. Preview: búsqueda informada
 
 Los tres algoritmos que hemos visto — BFS, DFS, IDDFS — son **no informados** (*uninformed* o *blind*): exploran el espacio de estados sin ninguna pista sobre cuán cerca está la meta. Prueban todas las posibilidades dentro de su estrategia, sin importar en qué dirección está la solución.
 

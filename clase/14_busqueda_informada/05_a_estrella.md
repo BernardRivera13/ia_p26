@@ -110,30 +110,39 @@ Sin consistencia (solo admisibilidad), A\* podría necesitar reabrir nodos ya ex
 
 ## 5. Ejemplo paso a paso
 
-Mismo grafo que usamos para Dijkstra. Ahora añadimos $h$ = distancia Manhattan desde cada nodo hasta F.
+El mismo grafo que Greedy y Dijkstra — los tres algoritmos sobre el mismo problema para comparar directamente.
 
 ```
-A ──2── B ──1── C
-│       │       │
-4       3       2
-│       │       │
-D ──1── E ──3── F
+Aristas dirigidas y pesos:
+  S→A: 1    S→B: 4    A→C: 1    A→G: 10    B→C: 1    C→G: 2
 
-Posiciones: A=(0,0), B=(0,2), C=(0,3), D=(2,0), E=(2,2), F=(2,3)
-h(n) = Manhattan(n, F):
-  h(A)=5, h(B)=3, h(C)=2, h(D)=3, h(E)=1, h(F)=0
+Posiciones de cuadrícula:
+  S=(0,0)  A=(0,2)  B=(3,0)  C=(2,2)  G=(3,4)
+
+h(n) = Manhattan a G=(3,4):
+  h(S)=7  h(A)=5  h(B)=4  h(C)=3  h(G)=0
 ```
 
-| Paso | Nodo expandido | $g(n)$ | $h(n)$ | $f(n)$ | Nodos añadidos a frontera |
+![A\* paso a paso]({{ '/14_busqueda_informada/images/13_astar_step_by_step.png' | url }})
+
+| Paso | Nodo expandido | $g(n)$ | $h(n)$ | $f(n)=g+h$ | Frontera tras expansión |
 |:----:|---|:---:|:---:|:---:|---|
-| 1 | A | 0 | 5 | 5 | B: f=2+3=5, D: f=4+3=7 |
-| 2 | B | 2 | 3 | 5 | C: f=3+2=5, E: f=5+1=6 |
-| 3 | C | 3 | 2 | 5 | F: f=5+0=**5** |
-| 4 | F | 5 | 0 | 5 | **¡Meta!** |
+| 1 | S | 0 | 7 | 7 | \{A: f=1+5=**6**, B: f=4+4=8\} |
+| 2 | A | 1 | 5 | 6 | \{C: f=2+3=**5**, B:8, G: f=11+0=11\} |
+| 3 | C | 2 | 3 | 5 | \{B:8, G: f=**4**+0=4\} ← G actualizado |
+| 4 | G | 4 | 0 | **4** | **¡Meta!** |
 
-Camino: `A → B → C → F` con costo **5** — óptimo, ¡en solo 4 expansiones!
+Camino: `S → A → C → G` con costo **4** — óptimo, en solo **4 expansiones**.
 
-**Comparación**: Dijkstra necesitó 6 expansiones para el mismo resultado. A\* necesitó 4 porque la heurística lo dirigió directamente hacia F sin explorar D y E.
+**B nunca fue expandido.** $f(B)=8 > f^*(G)=4$: A\* sabe que B no puede llevar a nada mejor que lo que ya encontró. El panel 6 de la imagen lo muestra — B quedó en la frontera al terminar.
+
+| Algoritmo | Expansiones | Camino | Costo | ¿Óptimo? |
+|---|:---:|---|:---:|:---:|
+| Greedy | 4 | S→B→C→G | 7 | No |
+| Dijkstra | 5 | S→A→C→G | 4 | Sí |
+| **A\*** | **4** | **S→A→C→G** | **4** | **Sí** |
+
+A\* iguala la velocidad de Greedy **y** la optimalidad de Dijkstra — gracias a $f = g + h$.
 
 ---
 

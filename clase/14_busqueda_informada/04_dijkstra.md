@@ -261,33 +261,31 @@ Cada relajación exitosa significa que encontramos un camino más barato a algú
 
 ## 6. Ejemplo paso a paso
 
-Grafo con 6 nodos y pesos enteros. Inicio = A, Meta = F.
+El mismo grafo que usaremos también para A\* — los tres algoritmos comparados en el mismo problema.
 
 ```
-A ──2── B ──1── C
-│       │       │
-4       3       2
-│       │       │
-D ──1── E ──3── F
+Aristas dirigidas y pesos:
+  S→A: 1    S→B: 4    A→C: 1    A→G: 10    B→C: 1    C→G: 2
 
-Pesos de aristas:
-  A-B: 2   B-C: 1   C-F: 2
-  A-D: 4   B-E: 3   E-F: 3
-  D-E: 1
+Posiciones de cuadrícula (para calcular h en A*):
+  S=(0,0)  A=(0,2)  B=(3,0)  C=(2,2)  G=(3,4)
 ```
+
+![Dijkstra paso a paso]({{ '/14_busqueda_informada/images/12_dijkstra_step_by_step.png' | url }})
 
 | Paso | Nodo expandido | $g(n)$ | Relajaciones realizadas | Frontera (g valores) |
 |:----:|---|:---:|---|---|
-| 1 | A | 0 | g[B]=2, g[D]=4 | {B:2, D:4} |
-| 2 | B | 2 | g[C]=3, g[E]=5 | {C:3, D:4, E:5} |
-| 3 | C | 3 | g[F]=5 | {D:4, E:5, F:5} |
-| 4 | D | 4 | **g[E]=5→5** (sin cambio: 4+1=5 ≥ 5) | {E:5, F:5} |
-| 5 | E | 5 | **g[F]=5→8?** No — 5+3=8 > 5, sin cambio | {F:5} |
-| 6 | F | 5 | **¡Meta!** | — |
+| 1 | S | 0 | g[A]=1, g[B]=4 | \{A:1, B:4\} |
+| 2 | A | 1 | g[C]=2, g[G]=11 | \{C:2, B:4, G:11\} |
+| 3 | C | 2 | **g[G]: 11 → 4** | \{B:4, G:4\} |
+| 4 | B | 4 | B→C: 4+1=5 > g[C]=2, sin cambio | \{G:4\} |
+| 5 | G | 4 | **¡Meta!** | — |
 
-Camino devuelto: `A → B → C → F` con costo total **5**.
+Camino devuelto: `S → A → C → G` con costo total **4**.
 
-**¿Dónde ocurrió la relajación interesante?** En el paso 4, D intentó relajar E a 4+1=5, pero E ya tenía $g=5$ desde el paso 2 vía B. En grafos con pesos no negativos, el nodo que abre la cola de prioridad primero ya tiene su costo óptimo — por eso el paso 4 no mejoró a E.
+**¿Dónde ocurrió la relajación interesante?** En el paso 3, al expandir C se descubrió un camino más barato hasta G: en lugar de S→A→G (costo=11), ahora S→A→C→G (costo=4). Eso es exactamente la relajación: $g[G]$ se actualiza de 11 a 4.
+
+**Contraste con Greedy**: Greedy expande B antes que A (porque $h(B)=4 < h(A)=5$) y encuentra S→B→C→G (costo=7). Dijkstra expande A antes que B (porque $g(A)=1 < g(B)=4$) y llega al camino óptimo.
 
 ---
 

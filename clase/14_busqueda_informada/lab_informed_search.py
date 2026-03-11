@@ -1092,6 +1092,301 @@ def plot_ida_star_iterations() -> None:
 
 
 # ---------------------------------------------------------------------------
+# 11-13. Step-by-step traces: Greedy / Dijkstra / A*
+#
+# Same toy graph for all three, enabling direct comparison:
+#   Nodes: S (start), A, B, C, G (goal)
+#   Directed edges with weights:
+#     S→A:1  S→B:4  A→C:1  A→G:10  B→C:1  C→G:2
+#   h(n) = Manhattan to G using integer grid coords
+#     Grid: S=(0,0), A=(0,2), B=(3,0), C=(2,2), G=(3,4)
+#     h(S)=7, h(A)=5, h(B)=4, h(C)=3, h(G)=0
+#
+#  Algorithm   Expansion order     Path found      Cost   Notes
+#  ─────────   ────────────────    ───────────     ────   ──────────────────
+#  Greedy      S, B, C, G          S→B→C→G         7      suboptimal (h misleads)
+#  Dijkstra    S, A, C, B, G       S→A→C→G         4      optimal, expands B
+#  A*          S, A, C, G          S→A→C→G         4      optimal, B never expanded
+# ---------------------------------------------------------------------------
+
+_TOY_POS = {
+    'S': (0.0, 2.0),
+    'A': (2.5, 3.5),
+    'B': (2.5, 0.5),
+    'C': (5.0, 2.0),
+    'G': (7.5, 2.0),
+}
+_TOY_EDGES_W = [
+    ('S', 'A', 1), ('S', 'B', 4),
+    ('A', 'C', 1), ('A', 'G', 10),
+    ('B', 'C', 1), ('C', 'G', 2),
+]
+_TOY_H = {'S': 7, 'A': 5, 'B': 4, 'C': 3, 'G': 0}
+
+
+def _draw_toy_step(ax, current, frontier_nodes, explored_nodes,
+                   node_labels, title, solution_path=None, note=None):
+    """Draw one step of a search algorithm on the shared toy graph."""
+    pos = _TOY_POS
+    R = 0.42
+    sol = solution_path or []
+    sol_set = set(sol)
+
+    # --- Directed edges (arrows) ---
+    for u, v, w in _TOY_EDGES_W:
+        p0, p1 = pos[u], pos[v]
+        dx, dy = p1[0] - p0[0], p1[1] - p0[1]
+        d = (dx ** 2 + dy ** 2) ** 0.5
+        ux, uy = dx / d, dy / d
+        on_sol = (len(sol) > 1
+                  and u in sol_set and v in sol_set
+                  and abs(sol.index(u) - sol.index(v)) == 1)
+        ec = COLORS["green"] if on_sol else "#BBBBBB"
+        ew = 2.8 if on_sol else 1.4
+        xs, ys = p0[0] + ux * (R + 0.06), p0[1] + uy * (R + 0.06)
+        xe, ye = p1[0] - ux * (R + 0.06), p1[1] - uy * (R + 0.06)
+        ax.annotate("", xy=(xe, ye), xytext=(xs, ys),
+                    arrowprops=dict(arrowstyle="-|>", color=ec, lw=ew,
+                                   mutation_scale=12 + 5 * on_sol))
+        # Weight label — offset perpendicularly from edge midpoint
+        mx = p0[0] * 0.4 + p1[0] * 0.6
+        my = p0[1] * 0.4 + p1[1] * 0.6
+        ox, oy = -dy / d * 0.28, dx / d * 0.28
+        ax.text(mx + ox, my + oy, str(w), ha='center', va='center',
+                fontsize=8.5, fontweight='bold', color="#333333",
+                bbox=dict(fc='white', ec='none', boxstyle='round,pad=0.1'))
+
+    # --- Node circles ---
+    for n, (x, y) in pos.items():
+        if n == current:
+            fc, ec, ew = COLORS["orange"], COLORS["dark"], 3.0
+        elif n in frontier_nodes:
+            fc, ec, ew = COLORS["blue"], COLORS["dark"], 2.0
+        elif n in explored_nodes:
+            fc, ec, ew = COLORS["green"], COLORS["dark"], 1.5
+        else:
+            fc, ec, ew = COLORS["light"], "#999999", 1.0
+        circle = plt.Circle((x, y), R, color=fc, ec=ec, linewidth=ew, zorder=3)
+        ax.add_patch(circle)
+        tc = 'white' if fc != COLORS["light"] else COLORS["dark"]
+        ax.text(x, y, n, ha='center', va='center', fontsize=11,
+                fontweight='bold', color=tc, zorder=4)
+        lbl = node_labels.get(n, '')
+        if lbl:
+            ax.text(x, y - 0.62, lbl, ha='center', va='top', fontsize=7.5,
+                    color=COLORS["dark"], zorder=4)
+
+    if note:
+        ax.text(3.75, -0.35, note, ha='center', va='top', fontsize=7.5,
+                color=COLORS["dark"],
+                bbox=dict(fc='#FDFEFE', ec=COLORS["gray"],
+                          boxstyle='round,pad=0.35', lw=0.8))
+
+    ax.set_xlim(-0.7, 8.2)
+    ax.set_ylim(-1.2, 4.8)
+    ax.set_aspect('equal')
+    ax.axis('off')
+    ax.set_title(title, fontsize=9, pad=4)
+
+
+def plot_greedy_step_by_step() -> None:
+    """6-panel step-by-step trace of Greedy on the toy graph."""
+    # h labels always visible (h is domain knowledge, always known)
+    hl = {n: f"h={v}" for n, v in _TOY_H.items()}
+
+    steps = [
+        # (current, frontier_set, explored_set, node_labels, title, solution_path, note)
+        (None,
+         {'S'}, set(), hl,
+         "Inicio\nFrontera: {S  (h=7)}",
+         None, None),
+
+        ('S',
+         {'A', 'B'}, {'S'}, hl,
+         "Expande S (h=7)\nFrontera: {B(h=4), A(h=5)}",
+         None, None),
+
+        ('B',
+         {'A', 'C'}, {'S', 'B'}, hl,
+         "Expande B (h=4) — menor h!\nFrontera: {C(h=3), A(h=5)}",
+         None,
+         "h(B)=4 < h(A)=5  →  Greedy prefiere B\n(ignora que S→B cuesta 4 y S→A solo 1)"),
+
+        ('C',
+         {'A', 'G'}, {'S', 'B', 'C'}, hl,
+         "Expande C (h=3)\nFrontera: {G(h=0), A(h=5)}",
+         None, None),
+
+        ('G',
+         set(), {'S', 'B', 'C'}, hl,
+         "META: G (h=0)  —  camino hallado\nS→B→C→G  costo = 4+1+2 = 7",
+         ['S', 'B', 'C', 'G'], None),
+
+        # Panel 6: A quedó en frontera — mostrar el error
+        (None,
+         {'A'}, {'S', 'B', 'C', 'G'}, hl,
+         "A quedó en frontera sin expandirse\n(h=5 parecía peor que h(B)=4)",
+         ['S', 'B', 'C', 'G'],
+         "Camino optimo real: S→A→C→G  costo = 1+1+2 = 4\n"
+         "Greedy fallo: ignoro g(n) y eligio el camino mas costoso"),
+    ]
+
+    fig, axes = plt.subplots(2, 3, figsize=(15, 9))
+    fig.suptitle(
+        "Greedy best-first paso a paso  —  siempre expande el menor h(n)\n"
+        "[naranja] expandiendo  [azul] frontera  [verde] explorado  [gris] no visto",
+        fontsize=11, fontweight='bold')
+    axes = axes.flatten()
+
+    legend_patches = [
+        mpatches.Patch(color=COLORS["orange"], label="Nodo actual (expandiendo)"),
+        mpatches.Patch(color=COLORS["blue"], label="En frontera"),
+        mpatches.Patch(color=COLORS["green"], label="Explorado"),
+        mpatches.Patch(color=COLORS["light"], label="No visitado"),
+    ]
+    for ax, (cur, fr, ex, lbl, ttl, sp, nt) in zip(axes, steps):
+        _draw_toy_step(ax, cur, fr, ex, lbl, ttl, sp, nt)
+
+    fig.legend(handles=legend_patches, loc='lower center', ncol=4,
+               fontsize=9, framealpha=0.9, bbox_to_anchor=(0.5, -0.02))
+    fig.tight_layout()
+    _save(fig, "11_greedy_step_by_step.png")
+
+
+def plot_dijkstra_step_by_step() -> None:
+    """6-panel step-by-step trace of Dijkstra on the toy graph."""
+    # g labels only for nodes whose g is known
+    steps = [
+        # (current, frontier_set, explored_set, node_labels, title, solution_path, note)
+        (None,
+         {'S'}, set(),
+         {'S': 'g=0'},
+         "Inicio\ng(S)=0  (resto desconocido)",
+         None, None),
+
+        ('S',
+         {'A', 'B'}, {'S'},
+         {'S': 'g=0', 'A': 'g=1', 'B': 'g=4'},
+         "Expande S (g=0)\nRelajacion: g[A]=0+1=1,  g[B]=0+4=4",
+         None, None),
+
+        ('A',
+         {'B', 'C', 'G'}, {'S', 'A'},
+         {'S': 'g=0', 'A': 'g=1', 'B': 'g=4', 'C': 'g=2', 'G': 'g=11'},
+         "Expande A (g=1) — menor g!\nRelajacion: g[C]=1+1=2,  g[G]=1+10=11",
+         None, None),
+
+        ('C',
+         {'B', 'G'}, {'S', 'A', 'C'},
+         {'S': 'g=0', 'A': 'g=1', 'B': 'g=4', 'C': 'g=2', 'G': 'g=4'},
+         "Expande C (g=2)\nRelajacion: g[G]: 11 → 2+2 = 4  !",
+         None,
+         "g[G] se actualiza: 11 → 4  (camino mas barato encontrado via C)"),
+
+        ('B',
+         {'G'}, {'S', 'A', 'C', 'B'},
+         {'S': 'g=0', 'A': 'g=1', 'B': 'g=4', 'C': 'g=2', 'G': 'g=4'},
+         "Expande B (g=4)\nB→C: g=4+1=5 > g[C]=2  —  sin relajacion",
+         None,
+         "C ya fue explorado con g=2 < 5  —  Dijkstra no retrocede"),
+
+        ('G',
+         set(), {'S', 'A', 'C', 'B'},
+         {'S': 'g=0', 'A': 'g=1', 'B': 'g=4', 'C': 'g=2', 'G': 'g=4'},
+         "META: G (g=4)  —  camino optimo\nS→A→C→G  costo = 1+1+2 = 4",
+         ['S', 'A', 'C', 'G'], None),
+    ]
+
+    fig, axes = plt.subplots(2, 3, figsize=(15, 9))
+    fig.suptitle(
+        "Dijkstra paso a paso  —  siempre expande el menor g(n)\n"
+        "[naranja] expandiendo  [azul] frontera  [verde] explorado  [gris] no visto",
+        fontsize=11, fontweight='bold')
+    axes = axes.flatten()
+
+    legend_patches = [
+        mpatches.Patch(color=COLORS["orange"], label="Nodo actual (expandiendo)"),
+        mpatches.Patch(color=COLORS["blue"], label="En frontera"),
+        mpatches.Patch(color=COLORS["green"], label="Explorado"),
+        mpatches.Patch(color=COLORS["light"], label="No visitado"),
+    ]
+    for ax, (cur, fr, ex, lbl, ttl, sp, nt) in zip(axes, steps):
+        _draw_toy_step(ax, cur, fr, ex, lbl, ttl, sp, nt)
+
+    fig.legend(handles=legend_patches, loc='lower center', ncol=4,
+               fontsize=9, framealpha=0.9, bbox_to_anchor=(0.5, -0.02))
+    fig.tight_layout()
+    _save(fig, "12_dijkstra_step_by_step.png")
+
+
+def plot_astar_step_by_step() -> None:
+    """6-panel step-by-step trace of A* on the toy graph."""
+    steps = [
+        # (current, frontier_set, explored_set, node_labels, title, solution_path, note)
+        (None,
+         {'S'}, set(),
+         {'S': 'f=0+7=7'},
+         "Inicio\nf(S) = g(S)+h(S) = 0+7 = 7",
+         None, None),
+
+        ('S',
+         {'A', 'B'}, {'S'},
+         {'S': 'f=7', 'A': 'f=1+5=6', 'B': 'f=4+4=8'},
+         "Expande S (f=7)\nA: f=1+5=6,  B: f=4+4=8",
+         None, None),
+
+        ('A',
+         {'B', 'C', 'G'}, {'S', 'A'},
+         {'S': 'f=7', 'A': 'f=6', 'B': 'f=8', 'C': 'f=2+3=5', 'G': 'f=11+0=11'},
+         "Expande A (f=6) — menor f!\nC: f=2+3=5,  G: f=(1+10)+0=11",
+         None, None),
+
+        ('C',
+         {'B', 'G'}, {'S', 'A', 'C'},
+         {'S': 'f=7', 'A': 'f=6', 'B': 'f=8', 'C': 'f=5', 'G': 'f=4+0=4'},
+         "Expande C (f=5)\nRelajacion: f[G]: 11 → (2+2)+0 = 4  !",
+         None,
+         "f[G] se actualiza: 11 → 4  (g[G]=4, h[G]=0)"),
+
+        ('G',
+         set(), {'S', 'A', 'C'},
+         {'S': 'f=7', 'A': 'f=6', 'B': 'f=8', 'C': 'f=5', 'G': 'f=4'},
+         "META: G (f=4)  —  camino optimo\nS→A→C→G  costo = 1+1+2 = 4",
+         ['S', 'A', 'C', 'G'], None),
+
+        # Panel 6: B nunca expandido — el beneficio de h(n)
+        (None,
+         {'B'}, {'S', 'A', 'C', 'G'},
+         {'S': 'f=7', 'A': 'f=6', 'B': 'f=8', 'C': 'f=5', 'G': 'f=4'},
+         "B quedo en frontera sin expandirse\nf(B)=8 > f*(G)=4",
+         ['S', 'A', 'C', 'G'],
+         "A* nunca expande nodos con f > costo optimo\n"
+         "Dijkstra expande B porque ignora h  —  A* lo evita gracias a h(B)=4"),
+    ]
+
+    fig, axes = plt.subplots(2, 3, figsize=(15, 9))
+    fig.suptitle(
+        "A* paso a paso  —  siempre expande el menor f(n) = g(n) + h(n)\n"
+        "[naranja] expandiendo  [azul] frontera  [verde] explorado  [gris] no visto",
+        fontsize=11, fontweight='bold')
+    axes = axes.flatten()
+
+    legend_patches = [
+        mpatches.Patch(color=COLORS["orange"], label="Nodo actual (expandiendo)"),
+        mpatches.Patch(color=COLORS["blue"], label="En frontera"),
+        mpatches.Patch(color=COLORS["green"], label="Explorado"),
+        mpatches.Patch(color=COLORS["light"], label="No visitado"),
+    ]
+    for ax, (cur, fr, ex, lbl, ttl, sp, nt) in zip(axes, steps):
+        _draw_toy_step(ax, cur, fr, ex, lbl, ttl, sp, nt)
+
+    fig.legend(handles=legend_patches, loc='lower center', ncol=4,
+               fontsize=9, framealpha=0.9, bbox_to_anchor=(0.5, -0.02))
+    fig.tight_layout()
+    _save(fig, "13_astar_step_by_step.png")
+
+
+# ---------------------------------------------------------------------------
 # main
 # ---------------------------------------------------------------------------
 def main() -> None:
@@ -1127,6 +1422,15 @@ def main() -> None:
 
     # 10. IDA* iterations
     plot_ida_star_iterations()
+
+    # 11. Greedy step-by-step
+    plot_greedy_step_by_step()
+
+    # 12. Dijkstra step-by-step
+    plot_dijkstra_step_by_step()
+
+    # 13. A* step-by-step
+    plot_astar_step_by_step()
 
     print("=" * 45)
     print(f"✓  Todas las imágenes guardadas en {IMAGES_DIR}")

@@ -128,29 +128,31 @@ La tabla completa de instancias:
 
 ## 4. Ejemplo paso a paso
 
-Grafo con 6 nodos. $h$ = distancia Manhattan al nodo Meta.
+Grafo ponderado con 5 nodos. $h$ = distancia Manhattan al nodo G.
 
 ```
-Posiciones (fila, col):
-  Inicio=(0,0), A=(0,2), B=(2,0), C=(2,2), D=(1,3), Meta=(3,3)
+Aristas dirigidas y pesos:
+  S→A: 1    S→B: 4    A→C: 1    A→G: 10    B→C: 1    C→G: 2
 
-Aristas (no ponderadas, solo para seguir el orden de expansión):
-  Inicio→A, Inicio→B, A→C, A→D, B→C, C→Meta, D→Meta
+Posiciones de cuadrícula (para calcular h):
+  S=(0,0)  A=(0,2)  B=(3,0)  C=(2,2)  G=(3,4)
 
-h(Inicio)=6, h(A)=4, h(B)=4, h(C)=2, h(D)=2, h(Meta)=0
+h(n) = Manhattan a G=(3,4):
+  h(S)=7  h(A)=5  h(B)=4  h(C)=3  h(G)=0
 ```
+
+![Greedy paso a paso]({{ '/14_busqueda_informada/images/11_greedy_step_by_step.png' | url }})
 
 | Paso | Nodo expandido | $h(n)$ | Frontera tras expansión | Nota |
 |:----:|---|:---:|---|---|
-| 1 | Inicio | 6 | \{A:4, B:4\} | Expande ambos vecinos |
-| 2 | A | 4 | \{B:4, C:2, D:2\} | Tie: A antes que B (orden de inserción) |
-| 3 | C | 2 | \{B:4, D:2\} | C tiene menor $h$ |
-| 4 | D | 2 | \{B:4, Meta:0\} | D también tiene $h=2$ |
-| 5 | Meta | 0 | — | **¡Encontrada!** |
+| 1 | S | 7 | \{B:4, A:5\} | Añade vecinos A y B |
+| 2 | **B** | **4** | \{C:3, A:5\} | h(B)=4 < h(A)=5 — Greedy prefiere B |
+| 3 | C | 3 | \{G:0, A:5\} | Añade G |
+| 4 | G | 0 | — | **¡Meta!** Camino: S→B→C→G, costo=7 |
 
-Camino devuelto: `Inicio → A → C → Meta`
+Camino devuelto: `S → B → C → G` con costo **7**.
 
-**¿Es óptimo?** En este ejemplo sí (todas las aristas tienen el mismo costo). Pero ese fue un caso afortunado — en el siguiente ejemplo veremos que Greedy falla.
+**¿Es óptimo?** No. El camino óptimo es `S → A → C → G` con costo **4** (1+1+2). Greedy falló porque $h(B)=4 < h(A)=5$ — pero S→B cuesta 4 y S→A solo 1. Al ignorar $g(n)$, Greedy eligió el camino con la arista cara. El panel 6 de la imagen muestra que **A quedó en la frontera sin ser expandido**.
 
 ---
 
